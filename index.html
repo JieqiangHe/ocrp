@@ -248,7 +248,10 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Find">Find</b><span><kbd>F</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="currentColor" stroke="none"/></svg><b data-t="Theme">Theme</b><span><kbd>T</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M6 3v10"/></svg><b data-t="Thumbnails">Thumbnails</b><span><kbd>H</kbd></span></li>
-<li><svg viewBox="0 0 16 16"><rect x="3" y="2.5" width="4" height="5" rx=".6"/><rect x="9" y="2.5" width="4" height="5" rx=".6"/><path d="M3 11h10"/></svg><b data-t="Split, rotate, delete, numbers">Split, rotate, delete, numbers</b><span><kbd>H</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="4.2" height="5.2" rx=".6"/><rect x="9.3" y="3" width="4.2" height="5.2" rx=".6"/><path d="M8 4.2v3.2"/></svg><b data-t="Split pages">Split pages</b><span><kbd>S</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><path d="M3.5 8a4.5 4.5 0 0 1 7.6-3.2L13 6.2"/><path d="M13 3.2v3h-3"/><rect x="5" y="9" width="6" height="4.2" rx=".6"/></svg><b data-t="Rotate pages">Rotate pages</b><span><kbd>R</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><path d="M4 5.5h8M6.2 5.5V4.2h3.6v1.3M5.2 5.5l.5 7h4.6l.5-7"/></svg><b data-t="Delete pages">Delete pages</b><span><kbd>⌫</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><rect x="3" y="2.2" width="10" height="11.6" rx="1"/><path d="M6.2 11.2h3.6"/></svg><b data-t="Number pages">Number pages</b><span><kbd>P</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.4"/><path d="M2.6 8h10.8M8 2.6c1.9 2.1 1.9 8.7 0 10.8M8 2.6c-1.9 2.1-1.9 8.7 0 10.8"/></svg><b data-t="Language">Language</b><span><kbd>L</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M3 5h6M12 5h1M3 11h1M7 11h6"/><circle cx="10.5" cy="5" r="1.5"/><circle cx="5.5" cy="11" r="1.5"/></svg><b data-t="Settings">Settings</b><span><kbd>,</kbd></span></li>
 </ul></div>
@@ -299,7 +302,7 @@ let UI=ls("mrdUI")==="zh"?"zh":"en";
 const ZH={
   "old, clean, read, paper":"old, clean, read, paper · 原始 简洁 阅读 文章",
   "Open a PDF":"打开 PDF","Save PDF":"保存 PDF","Save notes":"保存笔记",Documents:"文档","Notes map":"笔记地图",
-  Pages:"翻页",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图","Split, rotate, delete, numbers":"分割、旋转、删除、页码",Split:"分割",Rotate:"旋转",Delete:"删除",Numbers:"页码",Language:"语言",Settings:"设置",
+  Pages:"翻页",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图",Split:"分割",Rotate:"旋转",Delete:"删除",Numbers:"页码","Split pages":"分割页面","Rotate pages":"旋转页面","Delete pages":"删除页面","Number pages":"加页码",Language:"语言",Settings:"设置",
   Model:"模型",Think:"思考",Key:"密钥",URL:"URL",Translating:"翻译",Into:"译为",Low:"低",High:"高",Max:"最高",
   "Keys stay in this browser.":"密钥只留在这个浏览器里。",
   "Auto — translate as soon as text is selected":"自动 — 选中文字即刻翻译",
