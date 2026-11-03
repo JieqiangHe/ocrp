@@ -51,8 +51,6 @@ body.thumbs #mThumb{display:block}body.thumbs #mThumb:empty{display:none}
 .tp canvas,.tp img{display:block;width:100%;height:auto;box-shadow:0 0 0 1px var(--pageb)}
 .tp b{display:block;text-align:center;font-weight:normal;font-size:10px;color:var(--t3);margin-top:3px}
 .tp.cur{outline:2px solid var(--onb);outline-offset:3px}.tp.cur b{color:var(--onb)}
-
-
 .tp:hover .ph,.tp:hover canvas{box-shadow:0 0 0 1px var(--onb)}
 /* ---------- empty viewer: the one-time key and the shortcuts ---------- */
 #mHint{position:fixed;inset:0;z-index:4;display:grid;place-items:center;padding:24px;pointer-events:none}
@@ -645,26 +643,17 @@ async function openFiles(fs,hs=[]){
   msg('Restored '+n+' notes from '+fs[j].name+(d.fp&&d.fp!==fpr()?' — they were saved for '+(d.pdf||'another PDF')+', so positions may be off':''))}
 
 // ---------- document tabs (svguest-style): the active pdf lives in the globals, background tabs hold snapshots; the strip shows from two ----------
-const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false,tabGen=0;  // lightMode: shorter draw margin on a huge file
+const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: shorter draw margin above 60 MB. TN: this slot was pushed empty for an open that may still fail; TP: the tab to fall back to
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
-function tabHold(){
-  // Keep the parsed document. Destroying it here blanks the tab on the way back:
-  // getFile() needs a fresh gesture, and it can also take down the shared pdf.js worker.
-  TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
-  pdf=null;
+function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
   obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
   $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null}
-async function tabShow(i){const mine=++tabGen,t=TABS[TI=i]||{};lightMode=!!t.light;
-  pdf=t.pdf||null;({pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
-  pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
+function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;({pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
+  pdf=pdf||null;pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
   N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
   col();zr=t.zr||1;
-  document.title=pdfName?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!(pdf||pdfName));
-  selHide();hintOff();fClose();$('mOv').hidden=true;
-  if(!pdf&&pdfH){try{const f=await pdfH.getFile();if(mine!==tabGen)return;pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise}catch(_){}}
-  if(mine!==tabGen)return;
-  if(pdf){refit(zr).then(()=>{if(mine!==tabGen)return;col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)});TH()&&buildThumbs().catch(()=>{})}
-  else V.replaceChildren();
+  document.title=pdf?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!pdf);
+  selHide();hintOff();fClose();$('mOv').hidden=true;pdf?(refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)}),TH()&&buildThumbs().catch(()=>{})):V.replaceChildren();
   tabUI();sched()}
 function tabFresh(){if(!pdf)return true;
   if(TABS.length>=TMAX)return msg(TMAX+' tabs are open, the most ocrp keeps; close one to open another'),false;
@@ -687,9 +676,9 @@ window.pdfjsLib&&(pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudfla
 let pdf=null,scale=1,gen=0,obs,layP=Promise.resolve(),annOff=false,annN=0;  // annOff: draw the PDF's own annotations or not; annN: how many markup ones it has
 const annHide=v=>{if(annOff===!!v)return;annOff=!!v;if(!pdf)return;const y=SC.scrollTop;layout().then(()=>SC.scrollTop=y);TH()&&buildThumbs().catch(()=>{})};
 const open=(f,h)=>f.arrayBuffer().then(b=>openPdf(b,f.name,h)).catch(e=>msg('Cannot read '+f.name+': '+e.message));  // resolves true once open
-async function openPdf(buf,name,h,silent){
+async function openPdf(buf,name,h){
   if(!window.pdfjsLib)return msg('PDF engine failed to load — check the connection to cdnjs');
-  if(!silent&&!tabFresh())return false;
+  if(!tabFresh())return false;
   lightMode=(buf.byteLength||0)>6e7;  // >60 MB: draw a shorter margin. Page shells stay, so jumps still land.
   try{const np=await pdfjsLib.getDocument({data:buf}).promise;pdf=np}
   catch(e){msg('Cannot open '+name+': '+e.message);tabBack();pdf||($('mHint').hidden=false);return false}
@@ -770,7 +759,6 @@ async function tdraw(d){
   }catch(_){}}
 function mark(){const T=$('mThumb'),t=T.querySelector(`.tp[data-n="${curN}"]`);
   t&&(T.querySelectorAll('.tp.cur').forEach(x=>x.classList.remove('cur')),t.classList.add('cur'),t.scrollIntoView({block:'nearest'}))}
-
 $('mThumb').onclick=e=>{const t=e.target.closest('.tp');t&&goto(+t.dataset.n)};
 setTh(false);  // the thumbnails start hidden; H brings them back for this session
 
