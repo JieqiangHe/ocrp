@@ -692,8 +692,7 @@ const open=(f,h)=>f.arrayBuffer().then(b=>openPdf(b,f.name,h)).catch(e=>msg('Can
 async function openPdf(buf,name,h,silent){
   if(!window.pdfjsLib)return msg('PDF engine failed to load — check the connection to cdnjs');
   if(!silent&&!tabFresh())return false;
-  const sz=buf.byteLength||0;
-  lightMode=sz>6e7||TABS.filter(t=>t.pdfName).length>2;  // >60 MB or already a few tabs → light mode
+  lightMode=(buf.byteLength||0)>6e7||TABS.filter(t=>t.pdfName).length>2;  // >60 MB or already a few tabs → light mode
   try{const np=await pdfjsLib.getDocument({data:buf}).promise;pdf=np}
   catch(e){msg('Cannot open '+name+': '+e.message);tabBack();pdf||($('mHint').hidden=false);return false}
   TN=0;
