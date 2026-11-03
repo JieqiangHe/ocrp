@@ -651,22 +651,21 @@ const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: rende
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
 function tabHold(){
   const snap={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
-  if(pdf){pdf.destroy().catch(()=>{});snap.pdf=null}  // release the document; re-open from handle/bytes on show
-  TABS[TI]=snap;
+  // Drop the parsed document only when a FileSystemHandle can reopen it. Otherwise the tab would come back blank.
+  if(pdf&&pdfH){pdf.destroy().catch(()=>{});snap.pdf=null}
+  TABS[TI]=snap;pdf=null;
   obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
   $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null}
 async function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;
-  ({pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
+  pdf=t.pdf||null;({pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
   pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
   N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
   col();zr=t.zr||1;
-  document.title=pdfName?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!pdfName);
+  document.title=pdfName?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!(pdf||pdfName));
   selHide();hintOff();fClose();$('mOv').hidden=true;
-  if(!pdf && pdfH){  // re-open from FileSystemHandle
-    try{const f=await pdfH.getFile();await openPdf(await f.arrayBuffer(),pdfName,pdfH,true)}catch(_){}
-  }else if(pdf){
-    refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)});TH()&&buildThumbs().catch(()=>{});
-  }else V.replaceChildren();
+  if(!pdf&&pdfH){try{const f=await pdfH.getFile();pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise}catch(_){}}
+  if(pdf){refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)});TH()&&buildThumbs().catch(()=>{})}
+  else V.replaceChildren();
   tabUI();sched()}
 function tabFresh(){if(!pdf)return true;
   if(TABS.length>=TMAX)return msg(TMAX+' tabs are open, the most ocrp keeps; close one to open another'),false;
@@ -692,7 +691,7 @@ const open=(f,h)=>f.arrayBuffer().then(b=>openPdf(b,f.name,h)).catch(e=>msg('Can
 async function openPdf(buf,name,h,silent){
   if(!window.pdfjsLib)return msg('PDF engine failed to load — check the connection to cdnjs');
   if(!silent&&!tabFresh())return false;
-  lightMode=(buf.byteLength||0)>6e7||TABS.filter(t=>t.pdfName).length>2;  // >60 MB or already a few tabs → light mode
+  lightMode=(buf.byteLength||0)>6e7;  // >60 MB: draw a shorter margin. Page shells stay, so jumps still land.
   try{const np=await pdfjsLib.getDocument({data:buf}).promise;pdf=np}
   catch(e){msg('Cannot open '+name+': '+e.message);tabBack();pdf||($('mHint').hidden=false);return false}
   TN=0;
@@ -708,11 +707,8 @@ async function openPdf(buf,name,h,silent){
 }
 function layout(){
   const g=++gen,doc=pdf;obs?.disconnect();V.replaceChildren();
-  const margin=lightMode?'400px 0px':'800px 0px';
-  obs=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&draw(e.target)),{root:V,rootMargin:margin});
-  const around=lightMode?3:doc.numPages;
-  const lo=Math.max(1,curN-around),hi=Math.min(doc.numPages,curN+around);
-  return layP=(async()=>{for(let i=lo;i<=hi;i++){
+  obs=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&draw(e.target)),{root:V,rootMargin:lightMode?'200px 0px':'800px 0px'});
+  return layP=(async()=>{for(let i=1;i<=doc.numPages;i++){
     const vp=(await doc.getPage(i)).getViewport({scale});if(g!==gen)return;
     const d=el('div','page');d.dataset.n=i;d.style.cssText=`width:${vp.width}px;height:${vp.height}px;--scale-factor:${scale}`;
     hl(d);V.append(d);obs.observe(d);sched()}})().catch(()=>{}).then(()=>sched());
@@ -741,12 +737,7 @@ const refit=z=>pdf.getPage(1).then(p=>{const s=(SC.clientWidth-(TH()?$('mThumb')
 function cur(){let n=0;
   for(const p of V.querySelectorAll('.page')){if(p.offsetTop-SC.scrollTop<=SC.clientHeight*.4)n=+p.dataset.n;else break}
   n&&n!==curN&&(curN=n,mark())}
-SC.addEventListener('scroll',()=>{requestAnimationFrame(cur);sched();
-  if(lightMode&&pdf){const pages=[...V.querySelectorAll('.page')].map(p=>+p.dataset.n);
-    const max=Math.max(...pages,0),min=Math.min(...pages,pdf.numPages);
-    if(curN>max-1&&max<pdf.numPages)layout();
-    if(curN<min+1&&min>1)layout()}
-},{passive:true});
+SC.addEventListener('scroll',()=>{requestAnimationFrame(cur);sched()},{passive:true});
 function goto(n){if(!pdf)return msg('Open a PDF first');
   n=Math.min(Math.max(1,n||1),pdf.numPages);
   const p=V.querySelector(`.page[data-n="${n}"]`);
@@ -808,18 +799,20 @@ $('mThumb').onclick=e=>{
   else { selClear(); goto(n); }
 };
 document.addEventListener('keydown', e=>{
-  if(!TH()||!pdf||e.target.closest('input,textarea')) return;
-  const sel=[...selPages].sort((a,b)=>a-b);
+  if(!TH()||!pdf||!selPages.size||e.target.closest('input,textarea,select,[contenteditable]')) return;
+  const sel=[...selPages].sort((a,b)=>a-b);let op='';
   if(e.key==='Escape'){selClear();return}
-  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault(); pageOp('delete', sel); return}
-  if(e.key==='r'||e.key==='R'){e.preventDefault(); pageOp('rotate', sel); return}
-  if(e.key==='s'||e.key==='S'){e.preventDefault(); pageOp('split', sel); return}
-  if(e.key==='p'||e.key==='P'){e.preventDefault(); pageOp('pagenum', sel); return}
+  if(e.key==='Delete'||e.key==='Backspace')op='delete';
+  else if(e.key==='r'||e.key==='R')op='rotate';
+  else if(e.key==='s'||e.key==='S')op='split';
+  else if((e.key==='p'||e.key==='P')&&!e.metaKey&&!e.ctrlKey)op='pagenum';
+  if(!op)return;
+  e.preventDefault();e.stopImmediatePropagation();pageOp(op,sel);
 });
 
 async function getPdfBytes(){
-  if(pdfH){try{const f=await pdfH.getFile();return await f.arrayBuffer()}catch(_){}}
-  // fallback: not available for large files without handle
+  if(pdf){try{return await pdf.getData()}catch(_){}}
+  if(pdfH){try{return await (await pdfH.getFile()).arrayBuffer()}catch(_){}}
   return null;
 }
 async function pageOp(op, pages){
@@ -827,7 +820,8 @@ async function pageOp(op, pages){
   const bytes=await getPdfBytes();
   if(!bytes){msg('Cannot modify: no file handle (large file or opened from recent)');return}
   try{
-    const {PDFDocument, degrees, rgb, StandardFonts}=await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm');
+    plib();
+    const {PDFDocument, degrees, rgb, StandardFonts}=PDFLib;
     const src=await PDFDocument.load(bytes);
     if(op==='split'){
       const dst=await PDFDocument.create();
@@ -865,7 +859,6 @@ async function pageOp(op, pages){
   }catch(e){msg('Page operation failed: '+(e.message||e))}
 }
 
-$('mThumb').onclick=e=>{const t=e.target.closest('.tp');t&&goto(+t.dataset.n)};
 setTh(false);  // the thumbnails start hidden; H brings them back for this session
 
 // ---------- recent documents: metadata in one store, the PDF bytes in another, so listing never reads megabytes ----------
