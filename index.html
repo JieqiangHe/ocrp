@@ -51,6 +51,10 @@ body.thumbs #mThumb{display:block}body.thumbs #mThumb:empty{display:none}
 .tp canvas,.tp img{display:block;width:100%;height:auto;box-shadow:0 0 0 1px var(--pageb)}
 .tp b{display:block;text-align:center;font-weight:normal;font-size:10px;color:var(--t3);margin-top:3px}
 .tp.cur{outline:2px solid var(--onb);outline-offset:3px}.tp.cur b{color:var(--onb)}
+
+.tp.sel{outline:2px solid var(--onb);outline-offset:1px}
+.tp.sel b{color:var(--onb);font-weight:600}
+
 .tp:hover .ph,.tp:hover canvas{box-shadow:0 0 0 1px var(--onb)}
 /* ---------- empty viewer: the one-time key and the shortcuts ---------- */
 #mHint{position:fixed;inset:0;z-index:4;display:grid;place-items:center;padding:24px;pointer-events:none}
@@ -777,6 +781,91 @@ async function tdraw(d){
   }catch(_){}}
 function mark(){const T=$('mThumb'),t=T.querySelector(`.tp[data-n="${curN}"]`);
   t&&(T.querySelectorAll('.tp.cur').forEach(x=>x.classList.remove('cur')),t.classList.add('cur'),t.scrollIntoView({block:'nearest'}))}
+
+// ---------- page operations (thumbnails + keyboard) ----------
+let selPages = new Set();
+function selUpdate(){
+  document.querySelectorAll('#mThumb .tp').forEach(t=>{
+    const n=+t.dataset.n;
+    t.classList.toggle('sel', selPages.has(n));
+  });
+}
+function selClear(){selPages.clear();selUpdate()}
+function selToggle(n, multi=false, range=false){
+  if(!multi && !range) selPages.clear();
+  if(range && selPages.size){
+    const last=[...selPages].sort((a,b)=>a-b).at(-1);
+    const a=Math.min(last,n), b=Math.max(last,n);
+    for(let i=a;i<=b;i++) selPages.add(i);
+  } else {
+    selPages.has(n)?selPages.delete(n):selPages.add(n);
+  }
+  selUpdate();
+}
+$('mThumb').onclick=e=>{
+  const t=e.target.closest('.tp'); if(!t) return;
+  const n=+t.dataset.n;
+  if(e.shiftKey||e.metaKey||e.ctrlKey) selToggle(n, e.metaKey||e.ctrlKey, e.shiftKey);
+  else { selClear(); goto(n); }
+};
+document.addEventListener('keydown', e=>{
+  if(!TH()||!pdf||e.target.closest('input,textarea')) return;
+  const sel=[...selPages].sort((a,b)=>a-b);
+  if(e.key==='Escape'){selClear();return}
+  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault(); pageOp('delete', sel); return}
+  if(e.key==='r'||e.key==='R'){e.preventDefault(); pageOp('rotate', sel); return}
+  if(e.key==='s'||e.key==='S'){e.preventDefault(); pageOp('split', sel); return}
+  if(e.key==='p'||e.key==='P'){e.preventDefault(); pageOp('pagenum', sel); return}
+});
+
+async function getPdfBytes(){
+  if(pdfH){try{const f=await pdfH.getFile();return await f.arrayBuffer()}catch(_){}}
+  // fallback: not available for large files without handle
+  return null;
+}
+async function pageOp(op, pages){
+  if(!pages.length){msg('Select pages in thumbnails first');return}
+  const bytes=await getPdfBytes();
+  if(!bytes){msg('Cannot modify: no file handle (large file or opened from recent)');return}
+  try{
+    const {PDFDocument, degrees, rgb, StandardFonts}=await import('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm');
+    const src=await PDFDocument.load(bytes);
+    if(op==='split'){
+      const dst=await PDFDocument.create();
+      const copied=await dst.copyPages(src, pages.map(p=>p-1));
+      copied.forEach(p=>dst.addPage(p));
+      const out=await dst.save();
+      const name=pdfName.replace(/\.pdf$/i,'')+'-pages-'+pages.join(',')+'.pdf';
+      await keep(new Blob([out],{type:'application/pdf'}), name, 'application/pdf', '.pdf');
+      msg('Split '+pages.length+' pages');
+    }else if(op==='delete'){
+      pages.sort((a,b)=>b-a).forEach(p=>src.removePage(p-1));
+      const out=await src.save();
+      const name=pdfName.replace(/\.pdf$/i,'')+'-edited.pdf';
+      await keep(new Blob([out],{type:'application/pdf'}), name, 'application/pdf', '.pdf');
+      msg('Removed '+pages.length+' pages — saved as new file');
+    }else if(op==='rotate'){
+      pages.forEach(p=>{const page=src.getPage(p-1);page.setRotation(degrees((page.getRotation().angle+90)%360))});
+      const out=await src.save();
+      const name=pdfName.replace(/\.pdf$/i,'')+'-rotated.pdf';
+      await keep(new Blob([out],{type:'application/pdf'}), name, 'application/pdf', '.pdf');
+      msg('Rotated '+pages.length+' pages');
+    }else if(op==='pagenum'){
+      const font=await src.embedFont(StandardFonts.Helvetica);
+      pages.forEach(p=>{
+        const page=src.getPage(p-1);
+        const {width}=page.getSize();
+        page.drawText(String(p),{x:width/2-10,y:20,size:10,font,color:rgb(0.3,0.3,0.3)});
+      });
+      const out=await src.save();
+      const name=pdfName.replace(/\.pdf$/i,'')+'-numbered.pdf';
+      await keep(new Blob([out],{type:'application/pdf'}), name, 'application/pdf', '.pdf');
+      msg('Added page numbers to '+pages.length+' pages');
+    }
+    selClear();
+  }catch(e){msg('Page operation failed: '+(e.message||e))}
+}
+
 $('mThumb').onclick=e=>{const t=e.target.closest('.tp');t&&goto(+t.dataset.n)};
 setTh(false);  // the thumbnails start hidden; H brings them back for this session
 
