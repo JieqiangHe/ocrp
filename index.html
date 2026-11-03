@@ -325,7 +325,8 @@ const tr=s=>UI==="zh"?(ZH[s]||s):s,
       const q=o.el.querySelector(".ci textarea");q&&(q.placeholder=tr("Ask about this passage…"))}
     OV.hidden||ovRender();};
 // ---------- AI settings (DeepSeek), shown in the Settings sheet; stored as mrdDs<Key|Model|Ep> ----------
-const URL0='https://api.deepseek.com/chat/completions',MODELS=['deepseek-v4-pro','deepseek-flash'],
+const tbAi=()=>window.tbtools&&window.tbtools.ai,  // TBtools plugin: its model, no key. A browser has neither, so DeepSeek stays.
+  URL0='https://api.deepseek.com/chat/completions',MODELS=['deepseek-v4-pro','deepseek-flash'],
   aiF=[['mKey','Key'],['mModel','Model'],['mEp','Ep']],
   aiLoad=()=>{const m=ls('mrdDsModel');
     $('mModel').replaceChildren(...MODELS.map(x=>new Option(x,x)));
@@ -352,7 +353,7 @@ const keySave=()=>{const v=$('mKey0').value.trim();if(!v)return $('mKey0').focus
 const hintOff=()=>{document.body.classList.remove('ask');pdf||($('mHint').hidden=false);pdf&&($('mHint').hidden=true)},  // the card is the empty state: only a PDF can put it away
   hintOn=()=>{document.body.classList.add('ask');$('mHint').hidden=false};  // ? brings it back
 $('mKeySave').onclick=()=>{hintOff();keySave()};$('mHint').addEventListener('wheel',()=>{pdf&&hintOff()},{passive:true});$('mKey0').onkeydown=e=>{e.key==='Enter'&&(hintOff(),keySave())};
-$('mKey').value||($('mKeyFirst').hidden=false);
+$('mKey').value||tbAi()||($('mKeyFirst').hidden=false);
 
 // ---------- language, prompt ----------
 const LANGS=['Simplified Chinese','English'],
@@ -370,6 +371,14 @@ const MARK='<svg class="mtr" viewBox="0 0 190 145" fill="currentColor" aria-hidd
   apiMsg=t=>{try{const j=JSON.parse(t),e=j.error||j;return(e.code?'['+e.code+'] ':'')+(e.message||t)}catch(_){return t}};
 // ask(): one streamed request (svguest's call() without the GLM routes); finish_reason:'length' comes back as cut
 async function ask(model,msgs,myAc,ui){
+  if(tbAi()){
+    const ai=window.tbtools.ai,p=ai.chat(msgs.map(m=>({role:m.role,content:String(m.content??'')})),{onDelta:s=>ui.text(s)}),
+      stop=()=>{try{ai.abort(p.requestId)}catch(_){}};
+    myAc.signal.addEventListener('abort',stop,{once:true});
+    if(myAc.signal.aborted){stop();throw new DOMException('aborted','AbortError')}
+    try{const out=await p;ui.text(out);return{out,cut:0}}
+    catch(e){if(myAc.signal.aborted||(e&&e.message)==='aborted')throw new DOMException('aborted','AbortError');throw e}
+  }
   const u=$('mEp').value.trim(),key=$('mKey').value.trim();let r;
   try{r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},signal:myAc.signal,
     body:JSON.stringify({model,messages:msgs,stream:true,max_tokens:32768,thinking:{type:'enabled'},reasoning_effort:$('mThink').value})})}
