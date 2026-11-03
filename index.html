@@ -643,17 +643,26 @@ async function openFiles(fs,hs=[]){
   msg('Restored '+n+' notes from '+fs[j].name+(d.fp&&d.fp!==fpr()?' — they were saved for '+(d.pdf||'another PDF')+', so positions may be off':''))}
 
 // ---------- document tabs (svguest-style): the active pdf lives in the globals, background tabs hold snapshots; the strip shows from two ----------
-const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0;  // TN: this slot was pushed empty for an open that may still fail; TP: the tab to fall back to
+const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: render only nearby pages for large files
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
-function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice()};
+function tabHold(){
+  const snap={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
+  if(pdf){pdf.destroy().catch(()=>{});snap.pdf=null}  // release the document; re-open from handle/bytes on show
+  TABS[TI]=snap;
   obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
   $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null}
-function tabShow(i){const t=TABS[TI=i]||{};({pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
-  pdf=pdf||null;pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
+async function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;
+  ({pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
+  pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
   N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
   col();zr=t.zr||1;
-  document.title=pdf?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!pdf);
-  selHide();hintOff();fClose();$('mOv').hidden=true;pdf?(refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)}),TH()&&buildThumbs().catch(()=>{})):V.replaceChildren();
+  document.title=pdfName?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!pdfName);
+  selHide();hintOff();fClose();$('mOv').hidden=true;
+  if(!pdf && pdfH){  // re-open from FileSystemHandle
+    try{const f=await pdfH.getFile();await openPdf(await f.arrayBuffer(),pdfName,pdfH,true)}catch(_){}
+  }else if(pdf){
+    refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)});TH()&&buildThumbs().catch(()=>{});
+  }else V.replaceChildren();
   tabUI();sched()}
 function tabFresh(){if(!pdf)return true;
   if(TABS.length>=TMAX)return msg(TMAX+' tabs are open, the most ocrp keeps; close one to open another'),false;
@@ -676,9 +685,11 @@ window.pdfjsLib&&(pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudfla
 let pdf=null,scale=1,gen=0,obs,layP=Promise.resolve(),annOff=false,annN=0;  // annOff: draw the PDF's own annotations or not; annN: how many markup ones it has
 const annHide=v=>{if(annOff===!!v)return;annOff=!!v;if(!pdf)return;const y=SC.scrollTop;layout().then(()=>SC.scrollTop=y);TH()&&buildThumbs().catch(()=>{})};
 const open=(f,h)=>f.arrayBuffer().then(b=>openPdf(b,f.name,h)).catch(e=>msg('Cannot read '+f.name+': '+e.message));  // resolves true once open
-async function openPdf(buf,name,h){
+async function openPdf(buf,name,h,silent){
   if(!window.pdfjsLib)return msg('PDF engine failed to load — check the connection to cdnjs');
-  if(!tabFresh())return false;
+  if(!silent&&!tabFresh())return false;
+  const sz=buf.byteLength||0;
+  lightMode=sz>6e7||TABS.filter(t=>t.pdfName).length>2;  // >60 MB or already a few tabs → light mode
   try{const np=await pdfjsLib.getDocument({data:buf}).promise;pdf=np}
   catch(e){msg('Cannot open '+name+': '+e.message);tabBack();pdf||($('mHint').hidden=false);return false}
   TN=0;
@@ -694,11 +705,14 @@ async function openPdf(buf,name,h){
 }
 function layout(){
   const g=++gen,doc=pdf;obs?.disconnect();V.replaceChildren();
-  obs=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&draw(e.target)),{root:V,rootMargin:'800px 0px'});
-  return layP=(async()=>{for(let i=1;i<=doc.numPages;i++){
+  const margin=lightMode?'400px 0px':'800px 0px';
+  obs=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&draw(e.target)),{root:V,rootMargin:margin});
+  const around=lightMode?3:doc.numPages;
+  const lo=Math.max(1,curN-around),hi=Math.min(doc.numPages,curN+around);
+  return layP=(async()=>{for(let i=lo;i<=hi;i++){
     const vp=(await doc.getPage(i)).getViewport({scale});if(g!==gen)return;
     const d=el('div','page');d.dataset.n=i;d.style.cssText=`width:${vp.width}px;height:${vp.height}px;--scale-factor:${scale}`;
-    hl(d);V.append(d);obs.observe(d);sched()}})().catch(()=>{}).then(()=>sched());  // one more frame once every page div exists, so cards that were hidden while the pages were built come back
+    hl(d);V.append(d);obs.observe(d);sched()}})().catch(()=>{}).then(()=>sched());
 }
 async function draw(d){
   obs.unobserve(d);
@@ -724,7 +738,12 @@ const refit=z=>pdf.getPage(1).then(p=>{const s=(SC.clientWidth-(TH()?$('mThumb')
 function cur(){let n=0;
   for(const p of V.querySelectorAll('.page')){if(p.offsetTop-SC.scrollTop<=SC.clientHeight*.4)n=+p.dataset.n;else break}
   n&&n!==curN&&(curN=n,mark())}
-SC.addEventListener('scroll',()=>{requestAnimationFrame(cur);sched()},{passive:true});
+SC.addEventListener('scroll',()=>{requestAnimationFrame(cur);sched();
+  if(lightMode&&pdf){const pages=[...V.querySelectorAll('.page')].map(p=>+p.dataset.n);
+    const max=Math.max(...pages,0),min=Math.min(...pages,pdf.numPages);
+    if(curN>max-1&&max<pdf.numPages)layout();
+    if(curN<min+1&&min>1)layout()}
+},{passive:true});
 function goto(n){if(!pdf)return msg('Open a PDF first');
   n=Math.min(Math.max(1,n||1),pdf.numPages);
   const p=V.querySelector(`.page[data-n="${n}"]`);
