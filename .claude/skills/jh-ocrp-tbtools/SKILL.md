@@ -25,7 +25,9 @@ if(tbAi()){
 
 - `onDelta` receives the whole reply so far, not a token. There is no reasoning stream; do not call `ui.think`.
 - `abort(requestId)` rejects with message `aborted`. Other codes: `denied`, `busy`, `closed`, `invalid`, `too_many`, `too_large`. Keep a request within 32,000 characters and 20 messages.
-- No API key. Skip the first-run card when the bridge is there: `$('mKey').value||tbAi()||($('mKeyFirst').hidden=false)`.
+- The plugin shell (svguest `PluginInject`) forwards physical keys into `window.ocrpKey`, because JxBrowser often never delivers them to the page. Keep that function: it ignores events while an input is focused, and the keydown handler ignores the duplicate that arrives within 30 ms.
+
+No API key. Skip the first-run card when the bridge is there: `$('mKey').value||tbAi()||($('mKeyFirst').hidden=false)`.
 - Opt-in file, copied by the stage script, not committed next to the Pages `index.html`:
 
 ```json

@@ -354,7 +354,7 @@ const hintOff=()=>{document.body.classList.remove('ask');pdf||($('mHint').hidden
   hintOn=()=>{document.body.classList.add('ask');$('mHint').hidden=false};  // ? brings it back
 $('mKeySave').onclick=()=>{hintOff();keySave()};$('mHint').addEventListener('wheel',()=>{pdf&&hintOff()},{passive:true});$('mKey0').onkeydown=e=>{e.key==='Enter'&&(hintOff(),keySave())};
 $('mKey').value||tbAi()||($('mKeyFirst').hidden=false);
-tbAi()&&requestAnimationFrame(()=>{const a=document.activeElement;a&&a.closest&&a.closest('#mHint a')&&a.blur()});
+{let n=0;const hide=()=>{if(!tbAi())return;$('mKeyFirst').hidden=true;const a=document.activeElement;a&&a.closest&&a.closest('#mKeyFirst')&&a.blur()};hide();const iv=setInterval(()=>{hide();if(tbAi()||++n>30)clearInterval(iv)},100)}
 
 // ---------- language, prompt ----------
 const LANGS=['Simplified Chinese','English'],
@@ -974,7 +974,18 @@ SC.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();clea
   wzT=setTimeout(()=>zoom(e.deltaY<0?1.2:1/1.2),60)}},{passive:false});
 // one key handler for the whole app: physical key codes (e.code) so a Chinese IME with full-width
 // punctuation cannot break it, and no shortcut fires while the IME is composing
+let ocrpSeen='',ocrpAt=0;
+window.ocrpKey=(code,key,shift,meta,ctrl,alt)=>{
+  const t=document.activeElement;
+  if(t&&t.closest&&t.closest('input,textarea,select,[contenteditable]'))return;
+  const stamp=code+'|'+shift+'|'+meta+'|'+ctrl,now=performance.now();
+  if(stamp===ocrpSeen&&now-ocrpAt<30)return;
+  ocrpSeen=stamp;ocrpAt=now;
+  document.body.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,cancelable:true,code,key,shiftKey:!!shift,metaKey:!!meta,ctrlKey:!!ctrl,altKey:!!alt}))};
 document.addEventListener('keydown',e=>{
+  const stamp=(e.code||'')+'|'+!!e.shiftKey+'|'+!!e.metaKey+'|'+!!e.ctrlKey,now=performance.now();
+  if(e.isTrusted&&stamp===ocrpSeen&&now-ocrpAt<30)return;
+  if(e.isTrusted){ocrpSeen=stamp;ocrpAt=now}
   const tg=e.target,tag=tg&&tg.tagName||'';
   if(tg&&(tg.isContentEditable||/^(SELECT|TEXTAREA)$/.test(tag)||tag==='INPUT'&&tg.type!=='checkbox'))return;  // a field keeps the IME; a focused link must not
   // TBtools + Pinyin: key is "Process" and keyCode is 229, the letter only survives in code. svguest reads it the same way.
