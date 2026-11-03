@@ -54,6 +54,11 @@ body.thumbs #mThumb{display:block}body.thumbs #mThumb:empty{display:none}
 
 .tp.sel{outline:2px solid var(--onb);outline-offset:1px}
 .tp.sel b{color:var(--onb);font-weight:600}
+#mPageBar{display:none;position:fixed;z-index:9;left:50%;bottom:16px;transform:translateX(-50%);align-items:center;gap:2px;padding:3px;border-radius:8px;background:var(--btn);box-shadow:var(--shm)}
+body.thumbs #mPageBar{display:flex}
+#mPageBar button{height:26px;padding:0 10px;border:0;border-radius:6px;background:none;color:var(--fg);font:inherit;font-size:12px;cursor:pointer}
+#mPageBar button:hover{background:var(--btnh)}
+#mPageBar i{padding:0 8px;font-style:normal;font-size:11px;color:var(--t3)}
 
 .tp:hover .ph,.tp:hover canvas{box-shadow:0 0 0 1px var(--onb)}
 /* ---------- empty viewer: the one-time key and the shortcuts ---------- */
@@ -222,6 +227,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <button id="mUndo" hidden>Undo</button>
 <div id="mMain">
 <div id="mViewWrap"><div id="mThumb"></div><div id="mView"></div>
+<div id="mPageBar"><i data-t="Pages">Pages</i><button type="button" data-op="split" data-t="Split">Split</button><button type="button" data-op="rotate" data-t="Rotate">Rotate</button><button type="button" data-op="delete" data-t="Delete">Delete</button><button type="button" data-op="pagenum" data-t="Numbers">Numbers</button></div>
 <div id="mHint"><div class="hint">
 <div id="mKeyFirst" hidden><b data-t="DeepSeek API key">DeepSeek API key</b>
 <input id="mKey0" type="password" placeholder="sk-…" autocomplete="off" spellcheck="false"><button class="lnk" id="mKeySave" data-t="Save">Save</button>
@@ -242,6 +248,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Find">Find</b><span><kbd>F</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="currentColor" stroke="none"/></svg><b data-t="Theme">Theme</b><span><kbd>T</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M6 3v10"/></svg><b data-t="Thumbnails">Thumbnails</b><span><kbd>H</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><rect x="3" y="2.5" width="4" height="5" rx=".6"/><rect x="9" y="2.5" width="4" height="5" rx=".6"/><path d="M3 11h10"/></svg><b data-t="Split, rotate, delete, numbers">Split, rotate, delete, numbers</b><span><kbd>H</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.4"/><path d="M2.6 8h10.8M8 2.6c1.9 2.1 1.9 8.7 0 10.8M8 2.6c-1.9 2.1-1.9 8.7 0 10.8"/></svg><b data-t="Language">Language</b><span><kbd>L</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M3 5h6M12 5h1M3 11h1M7 11h6"/><circle cx="10.5" cy="5" r="1.5"/><circle cx="5.5" cy="11" r="1.5"/></svg><b data-t="Settings">Settings</b><span><kbd>,</kbd></span></li>
 </ul></div>
@@ -292,7 +299,7 @@ let UI=ls("mrdUI")==="zh"?"zh":"en";
 const ZH={
   "old, clean, read, paper":"old, clean, read, paper · 原始 简洁 阅读 文章",
   "Open a PDF":"打开 PDF","Save PDF":"保存 PDF","Save notes":"保存笔记",Documents:"文档","Notes map":"笔记地图",
-  Pages:"翻页",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图",Language:"语言",Settings:"设置",
+  Pages:"翻页",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图","Split, rotate, delete, numbers":"分割、旋转、删除、页码",Split:"分割",Rotate:"旋转",Delete:"删除",Numbers:"页码",Language:"语言",Settings:"设置",
   Model:"模型",Think:"思考",Key:"密钥",URL:"URL",Translating:"翻译",Into:"译为",Low:"低",High:"高",Max:"最高",
   "Keys stay in this browser.":"密钥只留在这个浏览器里。",
   "Auto — translate as soon as text is selected":"自动 — 选中文字即刻翻译",
@@ -797,8 +804,10 @@ $('mThumb').onclick=e=>{
   const t=e.target.closest('.tp'); if(!t) return;
   const n=+t.dataset.n;
   if(e.shiftKey||e.metaKey||e.ctrlKey) selToggle(n, e.metaKey||e.ctrlKey, e.shiftKey);
-  else { selClear(); goto(n); }
+  else { selPages.clear(); selPages.add(n); selUpdate(); goto(n); }
 };
+$('mPageBar').onclick=e=>{const b=e.target.closest('button');if(!b||!pdf)return;
+  pageOp(b.dataset.op, selPages.size?[...selPages].sort((a,c)=>a-c):[curN])};
 document.addEventListener('keydown', e=>{
   if(!TH()||!pdf||!selPages.size||e.target.closest('input,textarea,select,[contenteditable]')) return;
   const sel=[...selPages].sort((a,b)=>a-b);let op='';
