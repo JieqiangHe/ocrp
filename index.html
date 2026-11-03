@@ -354,6 +354,7 @@ const hintOff=()=>{document.body.classList.remove('ask');pdf||($('mHint').hidden
   hintOn=()=>{document.body.classList.add('ask');$('mHint').hidden=false};  // ? brings it back
 $('mKeySave').onclick=()=>{hintOff();keySave()};$('mHint').addEventListener('wheel',()=>{pdf&&hintOff()},{passive:true});$('mKey0').onkeydown=e=>{e.key==='Enter'&&(hintOff(),keySave())};
 $('mKey').value||tbAi()||($('mKeyFirst').hidden=false);
+tbAi()&&requestAnimationFrame(()=>{const a=document.activeElement;a&&a.closest&&a.closest('#mHint a')&&a.blur()});
 
 // ---------- language, prompt ----------
 const LANGS=['Simplified Chinese','English'],
@@ -475,7 +476,7 @@ function shell(o,label){const it=el('div','item '+o.k),ih=el('div','ih');o.ia=el
 async function translate(t,rs,sv){
   t=(t??'').trim();
   if(!t)return msg('Select text in the PDF to translate it');
-  if(!sv&&!$('mKey').value.trim()){cfg(1);return msg('Add an API key first')}
+  if(!sv&&!tbAi()&&!$('mKey').value.trim()){cfg(1);return msg('Add an API key first')}
   rs===undefined&&(rs=selA?.t===t?selA.rs:null);
   const t0=performance.now(),model=sv?.m||$('mModel').value,
     o={k:'t',t,rs,m:model,fy:rs?0:sv?sv.fy:(SC.scrollTop+8)/(docH()||1),ac:new AbortController()},ok=()=>nLast===o,
@@ -551,7 +552,7 @@ function chatUI(o,saved){
   go.onclick=()=>{if(o.qc)return o.qc.abort();const s=q.value.trim();if(!s)return q.focus();q.value='';q.oninput();chat(o,s,go)}}
 const turn=(o,q,a)=>{const r=el('div','r',a??'');o.cv.insertBefore(el('div','q',q),o.cv.lastChild);o.cv.insertBefore(r,o.cv.lastChild);a!=null&&o.chat.push([q,a]);return r};
 async function chat(o,s,go){
-  if(!$('mKey').value.trim()){cfg(1);return msg('Add an API key first')}
+  if(!tbAi()&&!$('mKey').value.trim()){cfg(1);return msg('Add an API key first')}
   const r=turn(o,s),wt=el('div','wt'),tx=el('span'),model=$('mModel').value;let acc='';
   wt.innerHTML=MARK;wt.append(el('span','sh','Thinking'));r.append(wt,tx);
   o.qc=new AbortController();go.innerHTML=svg('stop');go.title=tr('Stop');
@@ -979,7 +980,7 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey,k=e.key.toLowerCase(),c=e.code;
   if(mod){if(k==='s'){e.preventDefault();nmd()}else if(k==='o'){e.preventDefault();hintOff();A.open()}else if(k==='x'&&e.shiftKey){e.preventDefault();clrAll()}return}
   if(e.isComposing||e.keyCode===229)return;
-  if(e.target.closest('input,textarea,select,button,a,[contenteditable]'))return;
+  const tg=e.target,tag=tg&&tg.tagName||'';if(tg&&(tg.isContentEditable||/^(SELECT|TEXTAREA)$/.test(tag)||tag==='INPUT'&&tg.type!=='checkbox'))return;  // a focused link or button must not swallow shortcuts; inside TBtools the view focuses the licence link
   if(k==='Enter')hintOff();
   else if(k==='?'||(c==='Slash'&&e.shiftKey))hintOn();
   else if(k==='f'||c==='KeyF'){e.preventDefault();fOpen()}
