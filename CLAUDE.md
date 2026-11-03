@@ -4,7 +4,7 @@ A single-file PDF reader with side-by-side AI translation (DeepSeek, your own ke
 
 ## Repo rules
 
-- The whole app is one file, `index.html`. The repo mirrors minisvg's layout: `index.html`, `README.md`, `LICENSE` (GPL-3.0, same as minisvg), `.gitignore`, `CLAUDE.md`. Do not add test files or other folders.
+- The whole app is one file, `index.html`. The repo mirrors minisvg's layout: `index.html`, `README.md`, `LICENSE` (GPL-3.0, same as minisvg), `.gitignore`, `CLAUDE.md`, and `.claude/skills/jh-ocrp-tbtools` (how to package the TBtools plugin and use TBtools' model; the Java shell stays in svguest). Do not add test files or other folders.
 - Plain JavaScript, no framework, no build step. Only external dependency: pdf.js 3.11.174 from cdnjs (viewer + worker); it must keep working as a local/static page. pdf-lib 1.17.1 (MIT) is inlined at the end of `index.html` as `<script type="text/plain" id="mPlib">` (user's OK, 2026-10-31; ~525 KB, run by `plib()` on first Save PDF) — don't edit inside it; keep code above it.
 - Commit to `main` and push to GitHub (remote is SSH: `git@github.com:JieqiangHe/ocrp.git`) after each change — standing OK from the user (2026-10-07: everything in the folder goes up, only .DS_Store stays ignored).
 - The interface speaks English by default and Chinese after `L` (user, 2026-11-01); both strings live side by side (`ZH` is keyed by the English text) and a change to one must reach the other. README and code comments stay English.
