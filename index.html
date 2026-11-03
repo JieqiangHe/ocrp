@@ -647,24 +647,25 @@ async function openFiles(fs,hs=[]){
   msg('Restored '+n+' notes from '+fs[j].name+(d.fp&&d.fp!==fpr()?' — they were saved for '+(d.pdf||'another PDF')+', so positions may be off':''))}
 
 // ---------- document tabs (svguest-style): the active pdf lives in the globals, background tabs hold snapshots; the strip shows from two ----------
-const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: render only nearby pages for large files
+const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false,tabGen=0;  // lightMode: shorter draw margin on a huge file
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
 function tabHold(){
-  const snap={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
-  // Drop the parsed document only when a FileSystemHandle can reopen it. Otherwise the tab would come back blank.
-  if(pdf&&pdfH){pdf.destroy().catch(()=>{});snap.pdf=null}
-  TABS[TI]=snap;pdf=null;
+  // Keep the parsed document. Destroying it here blanks the tab on the way back:
+  // getFile() needs a fresh gesture, and it can also take down the shared pdf.js worker.
+  TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
+  pdf=null;
   obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
   $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null}
-async function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;
+async function tabShow(i){const mine=++tabGen,t=TABS[TI=i]||{};lightMode=!!t.light;
   pdf=t.pdf||null;({pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
   pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
   N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
   col();zr=t.zr||1;
   document.title=pdfName?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!(pdf||pdfName));
   selHide();hintOff();fClose();$('mOv').hidden=true;
-  if(!pdf&&pdfH){try{const f=await pdfH.getFile();pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise}catch(_){}}
-  if(pdf){refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)});TH()&&buildThumbs().catch(()=>{})}
+  if(!pdf&&pdfH){try{const f=await pdfH.getFile();if(mine!==tabGen)return;pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise}catch(_){}}
+  if(mine!==tabGen)return;
+  if(pdf){refit(zr).then(()=>{if(mine!==tabGen)return;col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)});TH()&&buildThumbs().catch(()=>{})}
   else V.replaceChildren();
   tabUI();sched()}
 function tabFresh(){if(!pdf)return true;
@@ -832,6 +833,7 @@ async function pageOp(op, pages){
       await keep(new Blob([out],{type:'application/pdf'}), name, 'application/pdf', '.pdf');
       msg('Split '+pages.length+' pages');
     }else if(op==='delete'){
+      if(pages.length>=src.getPageCount())return warn('Leave at least one page');
       pages.sort((a,b)=>b-a).forEach(p=>src.removePage(p-1));
       const out=await src.save();
       const name=pdfName.replace(/\.pdf$/i,'')+'-edited.pdf';
@@ -856,7 +858,7 @@ async function pageOp(op, pages){
       msg('Added page numbers to '+pages.length+' pages');
     }
     selClear();
-  }catch(e){msg('Page operation failed: '+(e.message||e))}
+  }catch(e){warn('Page operation failed: '+(e.message||e))}
 }
 
 setTh(false);  // the thumbnails start hidden; H brings them back for this session
