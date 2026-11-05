@@ -692,12 +692,12 @@ async function openFiles(fs,hs=[]){
 // ---------- document tabs (svguest-style): the active pdf lives in the globals, background tabs hold snapshots; the strip shows from two ----------
 const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: shorter draw margin above 60 MB. TN: this slot was pushed empty for an open that may still fail; TP: the tab to fall back to
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
-function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,bk:BK,notes:N.slice(),light:lightMode};
-  obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
+function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,bk:BK,notes:N.slice(),act:nAct,light:lightMode};
+  obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());N.length=0;nAct=null;  // N empties here: an open that follows must not clear (fade, abort) this tab's notesNS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
   $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null;pkOff()}
 function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;({pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
   pdf=pdf||null;pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};BK=t.bk||[];
-  N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
+  N.length=0;for(const o of t.notes||[])o.el.classList.remove('out'),N.push(o),NS.append(o.el),o.y=null;act(N.includes(t.act)?t.act:null);
   col();zr=t.zr||1;
   document.title=pdf?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!pdf);
   selHide();hintOff();fClose();$('mOv').hidden=true;pdf?(refit(zr).then(()=>{col();sched();SC.scrollTop=Math.min(t.st||0,SC.scrollHeight)}),TH()&&buildThumbs().catch(()=>{})):V.replaceChildren();
