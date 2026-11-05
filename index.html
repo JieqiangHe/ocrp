@@ -245,7 +245,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <li><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.5v-.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/></svg><b data-t="Copy / retry / remove note">Copy / retry / remove note</b><span><kbd>C</kbd><kbd>R</kbd><kbd data-k="del">⌫</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M6.4 6.4a1.6 1.6 0 1 1 2.2 1.5c-.4.2-.6.5-.6.9v.4M8 11h.01"/></svg><b data-t="Ask about a selection · switch model">Ask about a selection · switch model</b><span><kbd>A</kbd><kbd>Tab</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M2.5 8h11M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg><b data-t="Pages">Pages</b><span><kbd>←</kbd><kbd>→</kbd></span></li>
-<li><svg viewBox="0 0 16 16"><path d="M3 3v10M13 3v10M6 8h4"/></svg><b data-t="First / last page">First / last page</b><span><kbd data-k="cmd">⌘</kbd><kbd>↑</kbd><kbd>↓</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><path d="M3 3v10M13 3v10M6 8h4"/></svg><b data-t="First / last page">First / last page</b><span data-win="Home End"><kbd data-k="cmd">⌘</kbd><kbd>↑</kbd><kbd>↓</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M6 4 3 7l3 3"/><path d="M3 7h6.5a3.25 3.25 0 0 1 0 6.5H8"/></svg><b data-t="Back from a link">Back from a link</b><span><kbd>B</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M7 5v4M5 7h4"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Zoom">Zoom</b><span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Find">Find</b><span><kbd>F</kbd></span></li>
@@ -1111,6 +1111,7 @@ const A={open:()=>window.showOpenFilePicker?showOpenFilePicker({multiple:true,ty
 function setTheme(d){document.documentElement.dataset.theme=d?'dark':'light'}
 setTheme(document.documentElement.dataset.theme==='dark');
 MAC||document.querySelectorAll('[data-k]').forEach(k=>{k.textContent=KLBL[k.dataset.k]||k.textContent});
+MAC||document.querySelectorAll('[data-win]').forEach(s=>{s.replaceChildren(...s.dataset.win.split(' ').map(x=>el('kbd',0,x)))});  // a row whose keys differ by OS: Home/End on Windows, ⌘↑/⌘↓ on a Mac
 document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>A[b.dataset.a]());
 langApply();  // the interface speaks the stored language from the first paint
 // the hero chip types: ocrp, then what it stands for, and back
