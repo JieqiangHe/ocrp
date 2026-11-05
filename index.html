@@ -152,6 +152,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 .item .q{align-self:flex-end;max-width:88%;padding:4px 10px;border-radius:8px;background:var(--side);box-shadow:inset 0 0 0 1px var(--h4b);white-space:pre-wrap;overflow-wrap:anywhere}
 .item .r{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12.5px;line-height:1.65}
 .item .ci{display:flex;align-items:flex-end;gap:4px;padding:3px 3px 3px 8px;border-radius:8px;background:var(--side);box-shadow:inset 0 0 0 1px var(--btnb)}.item .ci:focus-within{box-shadow:inset 0 0 0 1px var(--onb)}
+.item .ci .mdl{flex:none;align-self:center;font-size:10.5px;color:var(--t3);cursor:pointer;user-select:none}.item .ci .mdl:hover{color:var(--onb)}
 .item .ci textarea{flex:1;min-width:0;height:22px;max-height:120px;padding:2px 0;border:0;border-radius:0;background:transparent;resize:none;line-height:1.5}
 .item .ci button{flex:none;width:22px;height:22px;padding:0;display:grid;place-items:center;border:0;border-radius:5px;background:var(--fg);color:var(--side)}.item .ci button:hover{opacity:.85}.item .ci .chg{width:13px;height:13px;stroke-width:1.8}
 @keyframes mTr{0%,100%{opacity:.38;transform:scale(.9)}50%{opacity:1;transform:scale(1.06)}}
@@ -304,7 +305,7 @@ const ZH={
   "Translate the selection":"翻译所选文字","Write your own comment on the selection":"给所选文字写批注",
   Move:"移动",Open:"打开","Close tab":"关闭标签",Close:"关闭",
   "Switch document…":"切换文档…","Find in the PDF":"在 PDF 中查找",
-  Translation:"翻译","Write a comment…":"写批注…","Ask about this passage…":"就这段提问…","Ask (Enter)":"提问 (Enter)",Ask:"提问",Question:"提问","Ask about the selection (A)":"就选中内容提问 (A)",Explain:"解释",Terms:"术语",Method:"方法",Evidence:"证据","Why it matters":"意义",
+  Translation:"翻译","Write a comment…":"写批注…","Ask about this passage…":"就这段提问…","Ask (Enter)":"提问 (Enter)","Tab: switch model":"Tab：切换模型",Ask:"提问",Question:"提问","Ask about the selection (A)":"就选中内容提问 (A)",Explain:"解释",Terms:"术语",Method:"方法",Evidence:"证据","Why it matters":"意义",
   Stop:"停止",Retry:"重试","Copy the translation":"复制译文","Copy the comment":"复制批注",Remove:"删除",
   "Translate again":"重新翻译",Thinking:"思考中",Stopped:"已停止","Thought for":"思考了",
   notes:"条笔记",note:"条笔记","(picture)":"（图片）","(no text)":"（无文字）",
@@ -566,25 +567,28 @@ const QP=[['Explain','Explain this passage in plain words, as to a biologist fro
   ['Why it matters','Why does this matter for the paper\'s main question, and which figure or result does it support?']];
 // askN(t,rs,sv): a conversation about the selection without translating it first; an empty one goes away when it loses focus
 function askN(t,rs,sv){t=(t??'').trim();if(!t)return;
-  const o={k:'a',t,rs,fy:0,out:'',d:sv?.d||new Date().toLocaleDateString([],{month:'short',day:'numeric'}),ac:new AbortController()};
+  const o={k:'a',t,rs,fy:0,out:'',m:sv?.m||$('mModel').value,d:sv?.d||new Date().toLocaleDateString([],{month:'short',day:'numeric'}),ac:new AbortController()};
   shell(o,tr('Question'));o.md.textContent=o.d;rs||o.el.append(el('div','u',t));o.ia.append(ibtn('x',tr('Remove'),()=>kill(o)));chatUI(o,sv?.chat);
   const q=o.cv.querySelector('textarea');q.addEventListener('blur',()=>setTimeout(()=>o.chat.length||o.qc||q.value.trim()||document.activeElement===q||kill(o),150));
   q.addEventListener('keydown',k=>{k.key==='Escape'&&q.blur()});
   sv||setTimeout(()=>q.focus({preventScroll:true}));return o}
 // chatUI(o,saved): the conversation under a translation; the passage and its translation go with every question
 function chatUI(o,saved){
-  const cv=el('div','cv'),ci=el('div','ci'),q=el('textarea'),go=btn('','Ask (Enter)');
-  q.rows=1;q.placeholder=tr('Ask about this passage…');q.spellcheck=false;go.innerHTML=svg('up');ci.append(q,go);cv.append(ci);o.el.append(cv);o.cv=cv;
+  const cv=el('div','cv'),ci=el('div','ci'),q=el('textarea'),go=btn('','Ask (Enter)'),mt=el('span','mdl'),
+    mShow=()=>{mt.textContent=(o.cm||$('mModel').value).replace(/^deepseek-/,'')},  // the model this conversation asks; Tab (or a click) switches it, for this card only
+    mNext=()=>{const L=MODELS,i=L.indexOf(o.cm||$('mModel').value);o.cm=L[(i+1)%L.length];o.k==='a'&&(o.m=o.cm,nsave());mShow();RM.matches||mt.animate([{color:'var(--onb)'},{}],{duration:600})};
+  mt.title=tr('Tab: switch model');mt.dataset.tt='Tab: switch model';mt.onmousedown=e=>e.preventDefault();mt.onclick=mNext;o.cm||=o.k==='a'&&o.m||$('mModel').value;mShow();  // fixed when the card is made, so the label never goes stale
+  q.rows=1;q.placeholder=tr('Ask about this passage…');q.spellcheck=false;go.innerHTML=svg('up');ci.append(q,mt,go);cv.append(ci);o.el.append(cv);o.cv=cv;
   const qp=el('div','qp');for(const [l,s] of QP){const b=el('button',0,tr(l));b.type='button';b.dataset.t=l;b.title=s;b.onmousedown=e=>e.preventDefault();b.onclick=()=>o.qc||chat(o,s,go,l);qp.append(b)}
   cv.insertBefore(qp,ci);  // the common questions, until the first one is asked
   for(const[x,y]of saved||[])turn(o,x,y);
   q.oninput=()=>{q.style.height='auto';q.style.height=Math.min(120,q.scrollHeight)+'px'};
-  q.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();go.click()}};
+  q.onkeydown=e=>{if(e.key==='Tab'&&!e.isComposing){e.preventDefault();mNext()}else if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();go.click()}};
   go.onclick=()=>{if(o.qc)return o.qc.abort();const s=q.value.trim();if(!s)return q.focus();q.value='';q.oninput();chat(o,s,go)}}
 const turn=(o,q,a)=>{const r=el('div','r',a??'');o.cv.insertBefore(el('div','q',q),o.cv.lastChild);o.cv.insertBefore(r,o.cv.lastChild);a!=null&&o.chat.push([q,a]);return r};
 async function chat(o,s,go,lb){  // lb: a preset's short label, shown and kept in place of its full prompt
   if(!tbAi()&&!$('mKey').value.trim()){cfg(1);return msg('Add an API key first')}
-  const r=turn(o,lb?tr(lb):s),wt=el('div','wt'),tx=el('span'),model=$('mModel').value;let acc='';
+  const r=turn(o,lb?tr(lb):s),wt=el('div','wt'),tx=el('span'),model=o.cm||$('mModel').value;let acc='';
   wt.innerHTML=MARK;wt.append(el('span','sh','Thinking'));r.append(wt,tx);
   o.qc=new AbortController();go.innerHTML=svg('stop');go.title=tr('Stop');
   const msgs=[{role:'system',content:'You help a reader understand a passage from an academic PDF; the reader is a biologist. Answer in '+$('mLang').value+', clearly and briefly, in plain text without Markdown headings.'},
