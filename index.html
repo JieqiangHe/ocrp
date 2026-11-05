@@ -104,6 +104,7 @@ ismiss on an empty window */
 .textLayer .endOfContent{display:block;position:absolute;inset:100% 0 0;z-index:-1;cursor:default;user-select:none}
 .textLayer.selecting .endOfContent{top:0}
 /* ---------- highlights, links, selection bar ---------- */
+.lkl{position:absolute;inset:0;z-index:3;pointer-events:none}.lk{position:absolute;pointer-events:auto;cursor:pointer;border-radius:2px}.lk:hover{background:#c9644214}
 .hl{position:absolute;z-index:1;pointer-events:none;border-radius:2px;background:#f5a50040;mix-blend-mode:multiply}.hl.on{background:#f5a50091}
 .pend{position:absolute;z-index:1;pointer-events:none;border-radius:2px;background:#c9644214;box-shadow:inset 0 0 0 1px #c9644280}
 .hl.c{background:#1a73e826}.hl.c.on{background:#1a73e85c}
@@ -234,6 +235,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <li><svg viewBox="0 0 16 16"><rect x="2.5" y="4.5" width="8" height="9" rx="1"/><path d="M5.5 2.5h7a1 1 0 0 1 1 1v7"/></svg><b data-t="Documents">Documents</b><span><kbd>D</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M2.5 12.5h11"/><circle cx="4.5" cy="6" r="1.6"/><circle cx="9" cy="8" r="1.6"/><circle cx="12.5" cy="4.5" r="1.6"/><path d="M6 6.6l1.2.9M10.4 7.2l.9-.9"/></svg><b data-t="Notes map">Notes map</b><span><kbd>M</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M2.5 8h11M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg><b data-t="Pages">Pages</b><span><kbd>←</kbd><kbd>→</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><path d="M6 4 3 7l3 3"/><path d="M3 7h6.5a3.25 3.25 0 0 1 0 6.5H8"/></svg><b data-t="Back from a link">Back from a link</b><span><kbd>B</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M7 5v4M5 7h4"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Zoom">Zoom</b><span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Find">Find</b><span><kbd>F</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 0 0 11z" fill="currentColor" stroke="none"/></svg><b data-t="Theme">Theme</b><span><kbd>T</kbd></span></li>
@@ -288,7 +290,7 @@ let UI=ls("mrdUI")==="zh"?"zh":"en";
 const ZH={
   "old, clean, read, paper":"old, clean, read, paper · 原始 简洁 阅读 文章",
   "Open a PDF":"打开 PDF","Save PDF":"保存 PDF","Save notes":"保存笔记",Documents:"文档","Notes map":"笔记地图",
-  Pages:"翻页",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图",Language:"语言",Settings:"设置",
+  Pages:"翻页","Back from a link":"链接后返回",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图",Language:"语言",Settings:"设置",
   Model:"模型",Think:"思考",Key:"密钥",URL:"URL",Translating:"翻译",Into:"译为",Low:"低",High:"高",Max:"最高",
   "Keys stay in this browser.":"密钥只留在这个浏览器里。",
   "Auto — translate as soon as text is selected":"自动 — 选中文字即刻翻译",
@@ -655,11 +657,11 @@ async function openFiles(fs,hs=[]){
 // ---------- document tabs (svguest-style): the active pdf lives in the globals, background tabs hold snapshots; the strip shows from two ----------
 const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: shorter draw margin above 60 MB. TN: this slot was pushed empty for an open that may still fail; TP: the tab to fall back to
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
-function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,notes:N.slice(),light:lightMode};
+function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,bk:BK,notes:N.slice(),light:lightMode};
   obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
   $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null}
 function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;({pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
-  pdf=pdf||null;pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};
+  pdf=pdf||null;pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};BK=t.bk||[];
   N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
   col();zr=t.zr||1;
   document.title=pdf?'ocrp — '+pdfName:'ocrp';document.body.classList.toggle('pdf',!!pdf);
@@ -694,7 +696,7 @@ async function openPdf(buf,name,h){
   catch(e){msg('Cannot open '+name+': '+e.message);tabBack();pdf||($('mHint').hidden=false);return false}
   TN=0;
   selHide();
-  clr();pdfName=name;pdfH=h||null;jsH=null;curN=1;document.title='ocrp — '+name;document.body.classList.add('pdf');setTh(false,1);  // every open starts without the sidebarfc.clear();fClose();hintOff();$('mOv').hidden=true;let k=0;try{k=nload(JSON.parse(localStorage['mrdN:'+fpr()]||'{}'))}catch(_){}
+  clr();pdfName=name;pdfH=h||null;jsH=null;curN=1;BK=[];document.title='ocrp — '+name;document.body.classList.add('pdf');setTh(false,1);  // every open starts without the sidebarfc.clear();fClose();hintOff();$('mOv').hidden=true;let k=0;try{k=nload(JSON.parse(localStorage['mrdN:'+fpr()]||'{}'))}catch(_){}
   let at=null;try{at=Object.values(await pdf.getAttachments()||{}).find(x=>x.filename===ATT||x.filename===AT0||x.filename===AT1)}catch(_){}
   annOff=!!at;annN=0;$('mUndo').hidden=true;undoD=null;  // an ocrp copy: its highlights are drawn by ocrp, not twice
   if(!k&&at)try{k=nload(JSON.parse(new TextDecoder().decode(at.content)))}catch(_){}
@@ -718,7 +720,7 @@ async function draw(d){
     c.width=vp.width*r;c.height=vp.height*r;d.append(c,t);
     await page.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[r,0,0,r,0,0],annotationMode:annOff?pdfjsLib.AnnotationMode.DISABLE:pdfjsLib.AnnotationMode.ENABLE}).promise;
     await pdfjsLib.renderTextLayer({textContentSource:page.streamTextContent(),container:t,viewport:vp,textDivs:[]}).promise;
-    t.append(el('div','endOfContent'));
+    t.append(el('div','endOfContent'));lnk(page,vp,d);
   }catch(e){d.isConnected&&msg('Page '+(+d.dataset.n)+' did not render: '+(e.message||e))}
 }
 let zr=1;  // zoom relative to the fit, so each tab keeps its zoom when the card column changes its width
@@ -741,6 +743,25 @@ function goto(n){if(!pdf)return msg('Open a PDF first');
   const p=V.querySelector(`.page[data-n="${n}"]`);
   if(p)SC.scrollTop=p.offsetTop-8;else layP.then(()=>V.querySelector(`.page[data-n="${n}"]`)?.scrollIntoView());
   n!==curN&&(curN=n,mark())}
+
+// ---------- links: the PDF's own links (citations, figures, contents) jump inside it; B or Alt+← goes back ----------
+let BK=[];  // where each jump started, as page + fraction, so a zoom in between keeps the place
+const here=()=>{let p=null;for(const d of V.querySelectorAll('.page')){if(d.offsetTop<=SC.scrollTop+1)p=d;else break}return p&&{n:+p.dataset.n,f:(SC.scrollTop-p.offsetTop)/p.offsetHeight}},
+  at=(n,f)=>{const go=()=>{const p=V.querySelector(`.page[data-n="${n}"]`);p&&(SC.scrollTop=p.offsetTop+f(p))};V.querySelector(`.page[data-n="${n}"]`)?go():layP.then(go);n!==curN&&(curN=n,mark())},
+  back=()=>{const h=pdf&&BK.pop();h&&at(h.n,p=>h.f*p.offsetHeight)},
+  LA={NextPage:()=>goto(curN+1),PrevPage:()=>goto(curN-1),FirstPage:()=>goto(1),LastPage:()=>goto(pdf.numPages),GoBack:back};
+async function lkGo(a){const doc=pdf;try{
+  let d=a.dest;typeof d==='string'&&(d=await doc.getDestination(d));if(!Array.isArray(d))return;
+  const n=(typeof d[0]==='number'?d[0]:await doc.getPageIndex(d[0]))+1,y={XYZ:d[3],FitH:d[2],FitBH:d[2],FitR:d[5]}[d[1]?.name];
+  const vp=(await doc.getPage(n)).getViewport({scale});if(doc!==pdf)return;
+  const off=y==null?0:Math.max(0,vp.convertToViewportPoint(0,y)[1]-24),h=here();  // a little air above the target line
+  h&&(BK.push(h),BK.length>50&&BK.shift());at(n,()=>off)}catch(_){}}
+const lnk=(page,vp,d)=>page.getAnnotations().then(as=>{const L=el('div','lkl');
+  for(const a of as){if(a.subtype!=='Link'||!(a.url||a.dest||a.action))continue;
+    const [x1,y1,x2,y2]=vp.convertToViewportRectangle(a.rect),k=el('div','lk');
+    k.style.cssText=`left:${Math.min(x1,x2)}px;top:${Math.min(y1,y2)}px;width:${Math.abs(x2-x1)}px;height:${Math.abs(y2-y1)}px`;a.url&&(k.title=a.url);
+    k.onclick=e=>{e.preventDefault();if(Date.now()-mqT<300)return;a.url?window.open(a.url,'_blank','noopener'):a.dest?lkGo(a):LA[a.action]?.()};L.append(k)}
+  L.childElementCount&&d.isConnected&&d.append(L)}).catch(()=>{});
 
 // ---------- thumbnails ----------
 let ts=1,tobs=null,tgen=0,curN=0;const tc=new Map();  // rendered thumbnails, by fingerprint and page
@@ -899,7 +920,7 @@ document.addEventListener('mouseup',e=>{
 SC.addEventListener('scroll',selHide,{passive:true});
 
 // ---------- marquee selection (Option/Alt + drag): the text inside a box, in reading order, because a PDF's own text order is not its visual one
-let MQ=null,mqLast=null;
+let MQ=null,mqLast=null,mqT=0;  // mqT: when a box drag ended, so the click that follows it does not follow a link
 const mqEl=$('mMarq'),mqBox=()=>mqEl.getBoundingClientRect(),mqLit=new Set();
 addEventListener('blur',()=>{MQ=null;document.body.classList.remove('mq')});
 document.addEventListener('mousedown',e=>{
@@ -924,6 +945,7 @@ document.addEventListener('mousemove',e=>{if(!MQ)return;
 document.addEventListener('mouseup',e=>{if(!MQ)return;
   const r=mqBox(),on=MQ.on;MQ=null;mqEl.hidden=true;document.body.classList.remove('mq');
   mqLit.forEach(s=>s.classList.remove('mq'));mqLit.clear();
+  if(on)mqT=Date.now();
   if(!on)return;  // a click, not a drag: leave the native behaviour alone
   if(r.width<4||r.height<4)return;
   const rows=[];
@@ -1008,6 +1030,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='o'||c==='KeyO'){e.preventDefault();hintOff();A.open()}
   else if(k==='t'||c==='KeyT')A.theme();else if(k==='h'||c==='KeyH')A.thumbs();
   else if(k==='+'||k==='='||c==='Equal'||c==='NumpadAdd')zoom(1.2);else if(k==='-'||c==='Minus'||c==='NumpadSubtract')zoom(1/1.2);else if(k==='0'||c==='Digit0'||c==='Numpad0')fit();
+  else if(k==='b'||c==='KeyB'||e.altKey&&(k==='arrowleft'||c==='ArrowLeft')){e.preventDefault();back()}
   else if(k==='arrowleft'||c==='ArrowLeft')goto(curN-1);else if(k==='arrowright'||c==='ArrowRight')goto(curN+1);
   else if(k==='home'||c==='Home')goto(1);else if(k==='end'||c==='End')goto(pdf?.numPages||1);
   else{let d=0;
