@@ -105,6 +105,8 @@ ismiss on an empty window */
 .textLayer.selecting .endOfContent{top:0}
 /* ---------- highlights, links, selection bar ---------- */
 .lkl{position:absolute;inset:0;z-index:3;pointer-events:none}.lk{position:absolute;pointer-events:auto;cursor:pointer;border-radius:2px}.lk:hover{background:#c9644214}
+#mPeek{position:fixed;z-index:30;padding:8px;border-radius:10px;background:var(--btn);box-shadow:var(--shm);cursor:pointer;animation:mPop .15s ease-out}#mPeek[hidden]{display:none}
+#mPeek canvas{display:block;border-radius:4px;background:#fff}
 .hl{position:absolute;z-index:1;pointer-events:none;border-radius:2px;background:#f5a50040;mix-blend-mode:multiply}.hl.on{background:#f5a50091}
 .pend{position:absolute;z-index:1;pointer-events:none;border-radius:2px;background:#c9644214;box-shadow:inset 0 0 0 1px #c9644280}
 .hl.c{background:#1a73e826}.hl.c.on{background:#1a73e85c}
@@ -262,7 +264,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 </div></div></section>
 </div>
 <svg id="mLink"></svg>
-<div id="mMarq" hidden></div>
+<div id="mMarq" hidden></div><div id="mPeek" hidden></div>
 <div id="mSelT" hidden><button data-s="t" title="Translate the selection" data-tt="Translate the selection"><svg class="chg" viewBox="0 0 16 16"><path d="M2.5 4h6M5.5 2.5V4M4 4c.5 2.5 2 4 4 5M7.5 4c-.5 2.5-2 4.5-4.5 5.5M9 13.5l2.5-6 2.5 6M9.8 11.6h3.4"/></svg><span data-t="Translate">Translate</span></button><button data-s="c" title="Write your own comment on the selection" data-tt="Write your own comment on the selection"><svg class="chg" viewBox="0 0 16 16"><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11A1.5 1.5 0 0 1 3 9.5z"/></svg><span data-t="Comment">Comment</span></button></div>
 </div>
 <div id="mK" hidden><div role="dialog" aria-label="Open documents"><input id="mKq" type="text" placeholder="Switch document…" data-tp="Switch document…" spellcheck="false" autocomplete="off"><div id="mKl" role="listbox"></div><p><kbd>← →</kbd><span data-t="Move">Move</span><kbd data-k="ret">↵</kbd><span data-t="Open">Open</span><kbd>⌫</kbd><span data-t="Close tab">Close tab</span><kbd>Esc</kbd><span data-t="Close">Close</span></p></div></div>
@@ -659,7 +661,7 @@ const TMAX=10,TABS=[{}];let TI=0,TN=0,TP=0,lightMode=false;  // lightMode: short
 const fprOf=p=>p?.fingerprints?.[0]||'',tabNm=i=>(i===TI?pdfName:TABS[i].pdfName)||'';
 function tabHold(){TABS[TI]={pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN,zr,st:SC.scrollTop,bk:BK,notes:N.slice(),light:lightMode};
   obs?.disconnect();tobs?.disconnect();N.forEach(o=>o.el.remove());NS.replaceChildren();$('mThumb').replaceChildren();V.replaceChildren();LK.innerHTML='';
-  $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null}
+  $('mUndo').hidden=true;undoD=null;clearTimeout(undoT);selHide();nLast=null;pkOff()}
 function tabShow(i){const t=TABS[TI=i]||{};lightMode=!!t.light;({pdf,pdfName,pdfH,jsH,scale,annOff,annN,curN}=t);
   pdf=pdf||null;pdfName=pdfName||'';scale=scale||1;annOff=!!annOff;annN=annN||0;curN=curN||1;TABS[i]={};BK=t.bk||[];
   N.length=0;for(const o of t.notes||[])N.push(o),NS.append(o.el),o.y=null;
@@ -750,17 +752,49 @@ const here=()=>{let p=null;for(const d of V.querySelectorAll('.page')){if(d.offs
   at=(n,f)=>{const go=()=>{const p=V.querySelector(`.page[data-n="${n}"]`);p&&(SC.scrollTop=p.offsetTop+f(p))};V.querySelector(`.page[data-n="${n}"]`)?go():layP.then(go);n!==curN&&(curN=n,mark())},
   back=()=>{const h=pdf&&BK.pop();h&&at(h.n,p=>h.f*p.offsetHeight)},
   LA={NextPage:()=>goto(curN+1),PrevPage:()=>goto(curN-1),FirstPage:()=>goto(1),LastPage:()=>goto(pdf.numPages),GoBack:back};
-async function lkGo(a){const doc=pdf;try{
-  let d=a.dest;typeof d==='string'&&(d=await doc.getDestination(d));if(!Array.isArray(d))return;
-  const n=(typeof d[0]==='number'?d[0]:await doc.getPageIndex(d[0]))+1,y={XYZ:d[3],FitH:d[2],FitBH:d[2],FitR:d[5]}[d[1]?.name];
-  const vp=(await doc.getPage(n)).getViewport({scale});if(doc!==pdf)return;
-  const off=y==null?0:Math.max(0,vp.convertToViewportPoint(0,y)[1]-24),h=here();  // a little air above the target line
-  h&&(BK.push(h),BK.length>50&&BK.shift());at(n,()=>off)}catch(_){}}
+async function lkRes(a){const doc=pdf;  // a link's target: page, left and top in PDF units (null when the PDF does not say)
+  let d=a.dest;typeof d==='string'&&(d=await doc.getDestination(d));if(!Array.isArray(d))return null;
+  const n=(typeof d[0]==='number'?d[0]:await doc.getPageIndex(d[0]))+1,t=d[1]?.name;
+  return doc===pdf&&{n,x:t==='XYZ'?d[2]:t==='FitR'?d[2]:null,y:{XYZ:d[3],FitH:d[2],FitBH:d[2],FitR:d[5]}[t]??null}}
+async function lkGo(r){const vp=(await pdf.getPage(r.n)).getViewport({scale});
+  const off=r.y==null?0:Math.max(0,vp.convertToViewportPoint(0,r.y)[1]-24),h=here();  // a little air above the target line
+  h&&(BK.push(h),BK.length>50&&BK.shift());at(r.n,()=>off)}
+// a click on a citation shows its target in place: a picture of that part of the page, cut to the column and to the entry, figure or equation
+const PK=$('mPeek');let pkR=null,pkG=0;
+const pkOff=()=>{PK.hidden=true;PK.replaceChildren();pkR=null;pkG++};
+async function lkPeek(a,k){const g=++pkG,doc=pdf;try{
+  const r=await lkRes(a);if(!r||g!==pkG)return;
+  const pg=await doc.getPage(r.n),[,,W,H]=pg.view,tc=await pg.getTextContent();if(g!==pkG)return;
+  const top=Math.min(H,(r.y??H)+3),it=tc.items.filter(t=>t.str.trim()&&t.transform[5]<top).map(t=>({x:t.transform[4],y:t.transform[5],w:t.width,h:Math.abs(t.transform[3])||10,s:t.str}));
+  const two=tc.items.filter(t=>t.str.trim()&&t.transform[4]>W*.47&&t.transform[4]<W*.62).length>4&&it.some(t=>t.x<W*.3);  // a two-column page: cut out one column
+  const x0=r.x??it.filter(t=>top-t.y<60).sort((a,b)=>b.y-a.y)[0]?.x??0,right=two&&x0>=W*.45,inC=t=>!two||(right?t.x>=W*.45:t.x<W*.5);
+  const col=it.filter(inC),L=[];for(const t of col.sort((a,b)=>b.y-a.y||a.x-b.x)){const l=L.at(-1);l&&Math.abs(l.y-t.y)<t.h*.5?(l.x=Math.min(l.x,t.x),l.r=Math.max(l.r,t.x+t.w),l.s+=t.s):L.push({y:t.y,x:t.x,r:t.x+t.w,h:t.h,s:t.s})}
+  let bot=L.length?top:top-H*.25,fig=0;  // nothing to read: a quarter page
+  if(L.length){const cap=/^\s*(fig(ure)?|table|tab)\.?\s*\d/i,c0=L.findIndex(l=>top-l.y<H*.6&&cap.test(l.s));
+    let s0=c0>0?c0:0,e=s0;fig=c0>0;  // a figure: the picture down to its caption; otherwise the entry or paragraph at the target
+    if(c0===0&&/^\s*tab/i.test(L[0].s))bot=top-H*.35;  // a table caption above its table: show the table under it
+    for(let i=s0+1;i<L.length&&i<s0+8;i++){const p=L[i-1],l=L[i],f=L[s0];
+      if(p.y-l.y>f.h*2)break;  // a gap: the entry or paragraph ended
+      if(/^\s*(\[\d+\]|\d+\.\s)/.test(l.s)||L[s0+1]&&L[s0+1].x>f.x+3&&Math.abs(l.x-f.x)<2)break;  // the next numbered or hanging-indent entry
+      e=i}
+    bot=Math.min(bot,Math.max(top-H*.6,L[e].y-L[e].h*.45))}
+  const rs0=Math.min(W*.53,...tc.items.filter(t=>t.str.trim()&&t.transform[4]>=W*.45).map(t=>t.transform[4])),cl=two?(right?W*.47:0):0,cr=two?(right?W:rs0-4):W,all=tc.items.filter(t=>t.str.trim()).map(t=>({x:t.transform[4],w:t.width})).filter(inC),  // the whole column's text sets the width, so a figure is not cut at its caption
+    xs=all.length?Math.max(cl,Math.min(...all.map(t=>t.x))-6):cl,xe=all.length&&!fig?Math.min(cr,Math.max(...all.map(t=>t.x+t.w))+6):cr;  // a figure may be wider than the text
+  const b=k.getBoundingClientRect(),dn=innerHeight-b.bottom-28>=b.top-28,room=Math.max(80,dn?innerHeight-b.bottom-28:b.top-28);  // below the link, or above it when there is more room there; never over it
+  const mh=Math.min(innerHeight*.6,room),sc=Math.min(Math.min(560,innerWidth-32)/(xe-xs),mh/(top-bot)),cw=(xe-xs)*sc,ch=(top-bot)*sc,  /* a tall figure shrinks to fit rather than being cut */d=devicePixelRatio||1,vp=pg.getViewport({scale:sc}),[X,Y]=vp.convertToViewportPoint(xs,top),c=el('canvas');
+  c.width=cw*d;c.height=ch*d;c.style.cssText=`width:${cw}px;height:${ch}px`;
+  await pg.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[d,0,0,d,-X*d,-Y*d],annotationMode:pdfjsLib.AnnotationMode.DISABLE}).promise;if(g!==pkG||doc!==pdf)return;
+  PK.replaceChildren(c);PK.title=tr('Page')+' '+r.n;pkR=r;PK.hidden=false;
+  PK.style.left=Math.max(16,Math.min(b.left,innerWidth-cw-32))+'px';PK.style.top=(dn?b.bottom+6:b.top-6-ch-16)+'px'}catch(_){}}
+PK.onclick=()=>{const r=pkR;pkOff();r&&lkGo(r)};
+PK.addEventListener('wheel',e=>{pkOff();SC.scrollBy(0,e.deltaY)},{passive:true});
+SC.addEventListener('scroll',()=>PK.hidden||pkOff(),{passive:true});
+document.addEventListener('mousedown',e=>{PK.hidden||PK.contains(e.target)||e.target.closest('.lk')||pkOff()},true);
 const lnk=(page,vp,d)=>page.getAnnotations().then(as=>{const L=el('div','lkl');
   for(const a of as){if(a.subtype!=='Link'||!(a.url||a.dest||a.action))continue;
     const [x1,y1,x2,y2]=vp.convertToViewportRectangle(a.rect),k=el('div','lk');
     k.style.cssText=`left:${Math.min(x1,x2)}px;top:${Math.min(y1,y2)}px;width:${Math.abs(x2-x1)}px;height:${Math.abs(y2-y1)}px`;a.url&&(k.title=a.url);
-    k.onclick=e=>{e.preventDefault();if(Date.now()-mqT<300)return;a.url?window.open(a.url,'_blank','noopener'):a.dest?lkGo(a):LA[a.action]?.()};L.append(k)}
+    k.onclick=e=>{e.preventDefault();if(Date.now()-mqT<300)return;a.url?window.open(a.url,'_blank','noopener'):a.dest?lkPeek(a,k):LA[a.action]?.()};L.append(k)}
   L.childElementCount&&d.isConnected&&d.append(L)}).catch(()=>{});
 
 // ---------- thumbnails ----------
@@ -1014,10 +1048,10 @@ document.addEventListener('keydown',e=>{
   const c=e.code||'',raw=typeof e.key==='string'?e.key:'';
   const k=(raw.length===1&&raw.charCodeAt(0)<128||raw.length>1&&raw!=='Process'&&raw!=='Unidentified'?raw:/^Key[A-Z]$/.test(c)?(e.shiftKey?c[3]:c[3].toLowerCase()):/^Digit\d$/.test(c)?c[5]:{Space:' ',Minus:'-',Equal:'=',Comma:',',Slash:e.shiftKey?'?':'/',BracketLeft:'[',BracketRight:']',Escape:'Escape',Enter:'Enter',ArrowLeft:'ArrowLeft',ArrowRight:'ArrowRight',ArrowUp:'ArrowUp',ArrowDown:'ArrowDown',Home:'Home',End:'End',PageUp:'PageUp',PageDown:'PageDown'}[c]||raw).toLowerCase();
   if(!$('mConn').hidden&&k!=='escape'&&k!==',')return;
-  if(k==='escape'||c==='Escape'){if(selA?.pend){selA=null;selHide();hlAll()};$('mOv').hidden||ovClose();$('mK').hidden||kClose();document.body.classList.contains('ask')&&hintOff();$('mFind').hidden||fClose();selHide();document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open'));$('mConn').hidden||cfg(0);return}
+  if(k==='escape'||c==='Escape'){PK.hidden||pkOff();if(selA?.pend){selA=null;selHide();hlAll()};$('mOv').hidden||ovClose();$('mK').hidden||kClose();document.body.classList.contains('ask')&&hintOff();$('mFind').hidden||fClose();selHide();document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open'));$('mConn').hidden||cfg(0);return}
   const mod=e.metaKey||e.ctrlKey;
   if(mod){if(k==='s'||c==='KeyS'){e.preventDefault();nmd()}else if(k==='o'||c==='KeyO'){e.preventDefault();hintOff();A.open()}else if((k==='x'||c==='KeyX')&&e.shiftKey){e.preventDefault();clrAll()}return}
-  if(k==='enter'||c==='Enter'){e.preventDefault();hintOff()}
+  if(k==='enter'||c==='Enter'){e.preventDefault();if(pkR){const r=pkR;pkOff();lkGo(r)}else hintOff()}
   else if(k==='?'||(c==='Slash'&&e.shiftKey))hintOn();
   else if(k==='f'||c==='KeyF'){e.preventDefault();fOpen()}
   else if(k==='d'||c==='KeyD'){e.preventDefault();kOpen()}
