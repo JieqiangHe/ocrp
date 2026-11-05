@@ -148,7 +148,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 .item img.cm{display:block;max-width:100%;margin-top:6px;border-radius:6px;box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .item .ce{display:block;width:100%;min-height:36px;padding:0;border:0;border-radius:0;background:transparent;resize:none;font-size:13px;line-height:1.65;overflow:hidden}
 .item .cv{display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-top:7px;border-top:1px solid var(--h4b)}
-.item:not(.on) .cv:not(:has(.q)){display:none}.item:not(.on) .ci{display:none}
+.item:not(.on) .cv:not(:has(.q)){display:none}.item .qp{display:flex;flex-wrap:wrap;gap:4px}.item .cv:has(.q) .qp{display:none}.item .qp button{height:22px;padding:0 8px;border-radius:6px;border:0;background:var(--btnh);color:var(--fg);font-family:inherit;font-size:11.5px;font-weight:500;line-height:22px;cursor:pointer}.item .qp button:hover{box-shadow:inset 0 0 0 1px var(--onb)}.item:not(.on) .ci{display:none}
 .item .q{align-self:flex-end;max-width:88%;padding:4px 10px;border-radius:8px;background:var(--side);box-shadow:inset 0 0 0 1px var(--h4b);white-space:pre-wrap;overflow-wrap:anywhere}
 .item .r{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12.5px;line-height:1.65}
 .item .ci{display:flex;align-items:flex-end;gap:4px;padding:3px 3px 3px 8px;border-radius:8px;background:var(--side);box-shadow:inset 0 0 0 1px var(--btnb)}.item .ci:focus-within{box-shadow:inset 0 0 0 1px var(--onb)}
@@ -267,7 +267,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 </div>
 <svg id="mLink"></svg>
 <div id="mMarq" hidden></div><div id="mPeek" hidden></div>
-<div id="mSelT" hidden><button data-s="t" title="Translate the selection" data-tt="Translate the selection"><svg class="chg" viewBox="0 0 16 16"><path d="M2.5 4h6M5.5 2.5V4M4 4c.5 2.5 2 4 4 5M7.5 4c-.5 2.5-2 4.5-4.5 5.5M9 13.5l2.5-6 2.5 6M9.8 11.6h3.4"/></svg><span data-t="Translate">Translate</span></button><button data-s="c" title="Write your own comment on the selection" data-tt="Write your own comment on the selection"><svg class="chg" viewBox="0 0 16 16"><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11A1.5 1.5 0 0 1 3 9.5z"/></svg><span data-t="Comment">Comment</span></button></div>
+<div id="mSelT" hidden><button data-s="t" title="Translate the selection" data-tt="Translate the selection"><svg class="chg" viewBox="0 0 16 16"><path d="M2.5 4h6M5.5 2.5V4M4 4c.5 2.5 2 4 4 5M7.5 4c-.5 2.5-2 4.5-4.5 5.5M9 13.5l2.5-6 2.5 6M9.8 11.6h3.4"/></svg><span data-t="Translate">Translate</span></button><button data-s="a" title="Ask about the selection (A)" data-tt="Ask about the selection (A)"><svg class="chg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M6.4 6.4a1.6 1.6 0 1 1 2.2 1.5c-.4.2-.6.5-.6.9v.4"/><path d="M8 11h.01"/></svg><span data-t="Ask">Ask</span></button><button data-s="c" title="Write your own comment on the selection" data-tt="Write your own comment on the selection"><svg class="chg" viewBox="0 0 16 16"><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11A1.5 1.5 0 0 1 3 9.5z"/></svg><span data-t="Comment">Comment</span></button></div>
 </div>
 <div id="mK" hidden><div role="dialog" aria-label="Open documents"><input id="mKq" type="text" placeholder="Switch document…" data-tp="Switch document…" spellcheck="false" autocomplete="off"><div id="mKl" role="listbox"></div><p><kbd>← →</kbd><span data-t="Move">Move</span><kbd data-k="ret">↵</kbd><span data-t="Open">Open</span><kbd>⌫</kbd><span data-t="Close tab">Close tab</span><kbd>Esc</kbd><span data-t="Close">Close</span></p></div></div>
 <div id="mOv" hidden><b id="mOvH"></b><div class="list" id="mOvL"></div><p class="mh"><kbd>M</kbd><span data-t="Close">Close</span></p></div>
@@ -304,7 +304,7 @@ const ZH={
   "Translate the selection":"翻译所选文字","Write your own comment on the selection":"给所选文字写批注",
   Move:"移动",Open:"打开","Close tab":"关闭标签",Close:"关闭",
   "Switch document…":"切换文档…","Find in the PDF":"在 PDF 中查找",
-  Translation:"翻译","Write a comment…":"写批注…","Ask about this passage…":"就这段提问…","Ask (Enter)":"提问 (Enter)",
+  Translation:"翻译","Write a comment…":"写批注…","Ask about this passage…":"就这段提问…","Ask (Enter)":"提问 (Enter)",Ask:"提问",Question:"提问","Ask about the selection (A)":"就选中内容提问 (A)",Explain:"解释",Terms:"术语",Method:"方法",Evidence:"证据","Why it matters":"意义",
   Stop:"停止",Retry:"重试","Copy the translation":"复制译文","Copy the comment":"复制批注",Remove:"删除",
   "Translate again":"重新翻译",Thinking:"思考中",Stopped:"已停止","Thought for":"思考了",
   notes:"条笔记",note:"条笔记","(picture)":"（图片）","(no text)":"（无文字）",
@@ -326,7 +326,7 @@ const tr=s=>UI==="zh"?(ZH[s]||s):s,
     document.querySelectorAll("[data-tt]").forEach(e=>{e.title=tr(e.dataset.tt)});
     const ph=document.querySelector("#mHint .ph");ph&&(ph.innerHTML=HINT[UI]);
     $("mUndo").textContent=tr("Undo");
-    for(const o of N){const b=o.el.querySelector(".ih b");b&&(b.textContent=tr(o.k==="c"?"Comment":"Translation"));
+    for(const o of N){const b=o.el.querySelector(".ih b");b&&(b.textContent=tr(o.k==="c"?"Comment":o.k==="a"?"Question":"Translation"));
       const ce=o.el.querySelector(".ce");ce&&(ce.placeholder=tr("Write a comment…"));
       const q=o.el.querySelector(".ci textarea");q&&(q.placeholder=tr("Ask about this passage…"))}
     OV.hidden||ovRender();};
@@ -558,26 +558,41 @@ function comment(t,rs,sv){
   e.onkeydown=k=>{k.key==='Escape'&&e.blur()};
   o.ia.append(ibtn('copy',tr('Copy the comment'),()=>copy(o.out)),ibtn('x','Remove',()=>kill(o)));
   requestAnimationFrame(fit);sv||setTimeout(()=>e.focus({preventScroll:true}));return o}
+// QP: the questions a biologist asks of a passage most often, one click each
+const QP=[['Explain','Explain this passage in plain words, as to a biologist from another field.'],
+  ['Terms','Define the technical terms, genes, proteins and abbreviations in this passage.'],
+  ['Method','What experiment or method is described here, how does it work, and what are its controls?'],
+  ['Evidence','What is claimed here, and how strong is the evidence: statistics, replicates, controls, alternative explanations?'],
+  ['Why it matters','Why does this matter for the paper\'s main question, and which figure or result does it support?']];
+// askN(t,rs,sv): a conversation about the selection without translating it first; an empty one goes away when it loses focus
+function askN(t,rs,sv){t=(t??'').trim();if(!t)return;
+  const o={k:'a',t,rs,fy:0,out:'',d:sv?.d||new Date().toLocaleDateString([],{month:'short',day:'numeric'}),ac:new AbortController()};
+  shell(o,tr('Question'));o.md.textContent=o.d;rs||o.el.append(el('div','u',t));o.ia.append(ibtn('x',tr('Remove'),()=>kill(o)));chatUI(o,sv?.chat);
+  const q=o.cv.querySelector('textarea');q.addEventListener('blur',()=>setTimeout(()=>o.chat.length||o.qc||q.value.trim()||document.activeElement===q||kill(o),150));
+  q.addEventListener('keydown',k=>{k.key==='Escape'&&q.blur()});
+  sv||setTimeout(()=>q.focus({preventScroll:true}));return o}
 // chatUI(o,saved): the conversation under a translation; the passage and its translation go with every question
 function chatUI(o,saved){
   const cv=el('div','cv'),ci=el('div','ci'),q=el('textarea'),go=btn('','Ask (Enter)');
   q.rows=1;q.placeholder=tr('Ask about this passage…');q.spellcheck=false;go.innerHTML=svg('up');ci.append(q,go);cv.append(ci);o.el.append(cv);o.cv=cv;
+  const qp=el('div','qp');for(const [l,s] of QP){const b=el('button',0,tr(l));b.type='button';b.dataset.t=l;b.title=s;b.onmousedown=e=>e.preventDefault();b.onclick=()=>o.qc||chat(o,s,go,l);qp.append(b)}
+  cv.insertBefore(qp,ci);  // the common questions, until the first one is asked
   for(const[x,y]of saved||[])turn(o,x,y);
   q.oninput=()=>{q.style.height='auto';q.style.height=Math.min(120,q.scrollHeight)+'px'};
   q.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();go.click()}};
   go.onclick=()=>{if(o.qc)return o.qc.abort();const s=q.value.trim();if(!s)return q.focus();q.value='';q.oninput();chat(o,s,go)}}
 const turn=(o,q,a)=>{const r=el('div','r',a??'');o.cv.insertBefore(el('div','q',q),o.cv.lastChild);o.cv.insertBefore(r,o.cv.lastChild);a!=null&&o.chat.push([q,a]);return r};
-async function chat(o,s,go){
+async function chat(o,s,go,lb){  // lb: a preset's short label, shown and kept in place of its full prompt
   if(!tbAi()&&!$('mKey').value.trim()){cfg(1);return msg('Add an API key first')}
-  const r=turn(o,s),wt=el('div','wt'),tx=el('span'),model=$('mModel').value;let acc='';
+  const r=turn(o,lb?tr(lb):s),wt=el('div','wt'),tx=el('span'),model=$('mModel').value;let acc='';
   wt.innerHTML=MARK;wt.append(el('span','sh','Thinking'));r.append(wt,tx);
   o.qc=new AbortController();go.innerHTML=svg('stop');go.title=tr('Stop');
-  const msgs=[{role:'system',content:'You help a reader understand a passage from an academic PDF. Answer in '+$('mLang').value+', clearly and briefly, in plain text without Markdown headings.'},
-    {role:'user',content:'Passage:\n'+o.t+'\n\nTranslation:\n'+o.out},{role:'assistant',content:'Got it. What would you like to know?'},
+  const msgs=[{role:'system',content:'You help a reader understand a passage from an academic PDF; the reader is a biologist. Answer in '+$('mLang').value+', clearly and briefly, in plain text without Markdown headings.'},
+    {role:'user',content:'Passage:\n'+o.t+(o.out?'\n\nTranslation:\n'+o.out:'')},{role:'assistant',content:'Got it. What would you like to know?'},
     ...o.chat.flatMap(([q,a])=>[{role:'user',content:q},{role:'assistant',content:a}]),{role:'user',content:s}];
   try{await ask(model,msgs,o.qc,{think:()=>{},text:x=>{acc=x;wt.hidden=true;tx.textContent=x}});if(!acc)throw Error('Empty reply')}
   catch(e){wt.hidden=true;if(e.name==='AbortError'){acc||(r.classList.add('dim'),tx.textContent='Stopped')}else{r.classList.add('er');tx.textContent='✖ '+e.message;acc=''}}
-  finally{o.qc=null;go.innerHTML=svg('up');go.title=tr('Ask (Enter)');acc&&(o.chat.push([s,acc]),nsave())}}
+  finally{o.qc=null;go.innerHTML=svg('up');go.title=tr('Ask (Enter)');acc&&(o.chat.push([lb?tr(lb):s,acc]),nsave())}}
 NS.addEventListener('wheel',e=>{const a=e.target.closest('.a,.ce,textarea');if(a&&a.scrollHeight>a.clientHeight||e.ctrlKey)return;e.preventDefault();SC.scrollTop+=e.deltaMode?e.deltaY*16:e.deltaY},{passive:false});
 V.addEventListener('click',e=>{const p=e.target.closest('.page');if(!p||!getSelection().isCollapsed)return;
   const b=p.getBoundingClientRect(),n=+p.dataset.n,x=(e.clientX-b.left)/scale,y=(e.clientY-b.top)/scale,
@@ -591,13 +606,14 @@ const warn=t=>{if(t===warnMsg&&Date.now()-warnAt<3e4)return;warnMsg=t;warnAt=Dat
 let pdfName='',pdfH=null,jsH=null;  // file handles (Chrome/Edge): the save dialog starts in the PDF's folder and Save rewrites the same file
 const fpr=()=>pdf?.fingerprints?.[0]||'',
   nmap=o=>({k:o.k,t:o.t,rs:o.rs,fy:o.fy,out:o.out,m:o.m,d:o.d,...(o.img&&{img:o.img}),...(o.chat.length&&{chat:o.chat})}),
-  ndata=()=>({ocrp:1,pdf:pdfName,fp:fpr(),notes:N.filter(o=>o.out?.trim()||o.img).map(nmap)}),
-  nsaveTab=(nm,fp,ns)=>{if(!fp)return;const k=ns.filter(o=>o.out?.trim()||o.img);
+  has=o=>o.out?.trim()||o.img||o.chat?.length,  // a note worth keeping: text, a picture or a conversation
+  ndata=()=>({ocrp:1,pdf:pdfName,fp:fpr(),notes:N.filter(has).map(nmap)}),
+  nsaveTab=(nm,fp,ns)=>{if(!fp)return;const k=ns.filter(has);
     const dump=drop=>JSON.stringify({ocrp:1,pdf:nm,fp,notes:k.map(o=>drop&&o.img?{...nmap(o),img:void 0}:nmap(o))});
     try{if(!k.length)localStorage.removeItem('mrdN:'+fp);else{let s=dump(0);if(s.length>35e5){s=dump(1);k.some(o=>o.img)&&warn(tr('near storage'))}localStorage['mrdN:'+fp]=s}}
     catch(err){warn(tr('out of storage'))}},
   nsave=()=>nsaveTab(pdfName,fpr(),N),
-  nload=d=>{clr();for(const n of d?.notes||[])n?.t&&(n.out||n.img)&&(n.k==='c'?comment(n.t,n.rs||null,n):translate(n.t,n.rs||null,n));act(null);return N.length};
+  nload=d=>{clr();for(const n of d?.notes||[])n?.t&&(n.out||n.img||n.chat?.length)&&(n.k==='c'?comment(n.t,n.rs||null,n):n.k==='a'?askN(n.t,n.rs||null,n):translate(n.t,n.rs||null,n));act(null);return N.length};
 // keep(blob,name,mime,ext,re): Chrome/Edge save dialog in the PDF's folder (re: remember the handle, so Save rewrites the same file), else a download
 async function keep(b,nm,mime,ext,re){
   if(window.showSaveFilePicker)try{let h=re&&jsH;h||=await showSaveFilePicker({suggestedName:nm,startIn:pdfH||'documents',types:[{description:nm,accept:{[mime]:[ext]}}]});re&&(jsH=h);
@@ -608,7 +624,7 @@ async function keep(b,nm,mime,ext,re){
 // nmd(): the notes as a Markdown file, page by page — the passage as a quote, then the translation or the comment, then the questions
 async function nmd(){
   if(!pdf)return msg('Open a PDF first');
-  const ns=N.filter(o=>o.out?.trim()||o.img);
+  const ns=N.filter(has);
   if(!ns.length)return msg('No notes to save');
   const base=pdfName.replace(/\.pdf$/i,''),pics=[];let ix=0;
   const by=ns.slice().sort((a,b)=>(a.rs?.[0]?.[0]??1e9)-(b.rs?.[0]?.[0]??1e9)||(a.rs?.[0]?.[2]??a.fy*1e3)-(b.rs?.[0]?.[2]??b.fy*1e3)),
@@ -621,7 +637,7 @@ async function nmd(){
     if(o.t)L.push('');
     if(o.img){const ext=o.img.includes('image/png')?'png':'jpg',nm=base+'.p'+p+'.'+(++ix)+'.'+ext;pics.push([nm,o.img]);L.push('![]('+nm+')','')}
     if(o.k==='c'){o.out.trim()&&L.push(o.out.trim(),'')}
-    else{L.push(o.out.trim(),'')
+    else{o.out.trim()&&L.push(o.out.trim(),'')
       for(const [q,a] of o.chat||[])L.push('**Q.** '+q.trim(),'',a.trim(),'')}
   }
   if(!await keep(new Blob([L.join('\n')],{type:'text/markdown'}),base+'.notes.md','text/markdown','.md',0))return;  // cancelled: no stray pictures
@@ -646,7 +662,7 @@ async function npdf(){
       for(const r of o.rs)r[0]===n&&[[r[1],r[2]],[r[1]+r[3],r[2]],[r[1],r[2]+r[4]],[r[1]+r[3],r[2]+r[4]]].forEach(([x,y])=>q.push(...vp.convertToPdfPoint(x,y)));
       const xs=q.filter((_,i)=>!(i%2)),ys=q.filter((_,i)=>i%2),c=o.k==='c';
       P[n-1].node.addAnnot(doc.context.register(doc.context.obj({Type:'Annot',Subtype:'Highlight',F:4,Rect:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)],
-        QuadPoints:q,C:c?[.10,.45,.91]:[.96,.65,0],CA:c?.35:.6,T:T('ocrp'),Contents:T(o.out+(o.chat||[]).map(([a,b])=>'\n\nQ: '+a+'\nA: '+b).join(''))})))}
+        QuadPoints:q,C:c?[.10,.45,.91]:[.96,.65,0],CA:c?.35:.6,T:T('ocrp'),Contents:T((o.out+(o.chat||[]).map(([a,b])=>'\n\nQ: '+a+'\nA: '+b).join('')).trim())})))}
     d.notes.length&&await doc.attach(new TextEncoder().encode(JSON.stringify(d)),ATT,{mimeType:'application/json',description:'ocrp notes'});
     await keep(new Blob([await doc.save()],{type:'application/pdf'}),pdfName.replace(/\.pdf$/i,'')+'.ocrp.pdf','application/pdf','.pdf')
   }catch(e){msg('Could not build the PDF: '+e.message)}}
@@ -934,7 +950,7 @@ selT.onmousedown=e=>e.preventDefault();
 selT.onclick=e=>{const b=e.target.closest('button');if(!b)return;const a=selA||mqLast;
   selHide();if(selA){selA.pend=0;hlAll()}if(!a)return warn('Nothing is selected — drag over the page again');
   getSelection().removeAllRanges();
-  try{const p=b.dataset.s==='c'?comment(a.t,a.rs):translate(a.t,a.rs);
+  try{const p=b.dataset.s==='c'?comment(a.t,a.rs):b.dataset.s==='a'?askN(a.t,a.rs):translate(a.t,a.rs);
     p&&p.catch&&p.catch(err=>warn('Translation stopped: '+(err.message||err)))}
   catch(err){warn('Could not start: '+(err.message||err))}};
 document.addEventListener('mouseup',e=>{
@@ -1058,6 +1074,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='p'||c==='KeyP'){e.preventDefault();npdf()}
   else if(k==='n'||c==='KeyN'){e.preventDefault();nmd()}
   else if(k==='j'||c==='KeyJ'){e.preventDefault();nStep(1)}else if(k==='k'||c==='KeyK'){e.preventDefault();nStep(-1)}
+  else if((k==='a'||c==='KeyA')&&!selT.hidden){e.preventDefault();selT.querySelector('[data-s=a]').click()}
   else if(k==='c'||c==='KeyC')nKey('c');else if(k==='r'||c==='KeyR')nKey('r');else if(k==='backspace'||k==='delete'||c==='Backspace'||c==='Delete'){nAct&&(e.preventDefault(),nKey('x'))}
   else if(k==='m'||c==='KeyM'){e.preventDefault();OV.hidden?ovOpen():ovClose()}
   else if(k==='l'||c==='KeyL'){e.preventDefault();UI=UI==='zh'?'en':'zh';ls('mrdUI',UI);langApply()}
