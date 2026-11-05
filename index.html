@@ -429,10 +429,11 @@ const sched=()=>nRaf||(nRaf=requestAnimationFrame(frame)),ro=new ResizeObserver(
 const OV=$('mOv'),OVL=$('mOvL'),OVH=$('mOvH');
 const ovClose=()=>{OV.hidden=true},
   ovOpen=()=>{if(!N.length)return;OV.hidden=false;ovRender()},
-  nStep=d=>{if(!N.length)return;const W=o=>want(o)??Infinity,L=nOrd(),i=L.indexOf(nAct),y=SC.scrollTop+SC.clientHeight*.32;  // J/K: the notes in page order
-    const o=i<0?(d>0?L.find(o=>W(o)>=y-1)||L[0]:L.findLast(o=>W(o)<=y+1)||L.at(-1)):L[(i+d+L.length)%L.length];
-    act(o);const w=want(o),pg=o.rs?.[0]?.[0];w!=null?(SC.scrollTop=Math.max(0,w-SC.clientHeight*.32)):pg&&goto(pg)},
-  nOrd=()=>{const W=o=>want(o)??Infinity;return [...N].sort((a,b)=>W(a)-W(b))},
+  nPos=o=>{const r=o.rs?.[0],p=r&&V.querySelector(`.page[data-n="${r[0]}"]`);return p?p.offsetTop+r[2]*scale:want(o)??Infinity},  // where the passage itself sits, in content pixels
+  nStep=d=>{if(!N.length)return;const L=nOrd(),i=L.indexOf(nAct),y=SC.scrollTop;  // J/K: the notes in reading order; with none active, from what is on screen
+    const o=i<0?(d>0?L.find(o=>nPos(o)>=y-1)||L[0]:L.findLast(o=>nPos(o)<=y+SC.clientHeight)||L.at(-1)):L[(i+d+L.length)%L.length];
+    act(o);const w=nPos(o),pg=o.rs?.[0]?.[0];w<Infinity?(SC.scrollTop=Math.max(0,w-SC.clientHeight*.32)):pg&&goto(pg)},
+  nOrd=()=>[...N].sort((a,b)=>nPos(a)-nPos(b)),
   nFlash=o=>RM.matches||o.el.animate([{boxShadow:'0 0 0 2px var(--onb)'},{boxShadow:'0 0 0 2px transparent'}],{duration:700}),  // the card answers the key
   nKey=w=>{const o=nAct;if(!o||!N.includes(o))return;  // C/R/Delete on the active card
     if(w==='c'){(o.out||'').trim()&&(copy(o.out),nFlash(o))}
@@ -754,7 +755,7 @@ async function draw(d){
     c.width=vp.width*r;c.height=vp.height*r;d.append(c,t);
     await page.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[r,0,0,r,0,0],annotationMode:annOff?pdfjsLib.AnnotationMode.DISABLE:pdfjsLib.AnnotationMode.ENABLE}).promise;
     await pdfjsLib.renderTextLayer({textContentSource:page.streamTextContent(),container:t,viewport:vp,textDivs:[]}).promise;
-    t.append(el('div','endOfContent'));lnk(page,vp,d);
+    t.append(el('div','endOfContent'));d.dataset.ok=1;lnk(page,vp,d);  // ok: drawn in full, so a link preview can copy it
   }catch(e){d.isConnected&&msg('Page '+(+d.dataset.n)+' did not render: '+(e.message||e))}
 }
 let zr=1;  // zoom relative to the fit, so each tab keeps its zoom when the card column changes its width
@@ -798,10 +799,11 @@ async function lkPeek(a,k){const g=++pkG,doc=pdf;let r=null;try{
   r=await lkRes(a);if(!r||g!==pkG)return;
   const pg=await doc.getPage(r.n),b=k.getBoundingClientRect(),dn=innerHeight-b.bottom-28>=b.top-28,mh=Math.min(innerHeight*.6,Math.max(120,dn?innerHeight-b.bottom-28:b.top-28)),  // below the link, or above it when there is more room there; never over it
     sc=Math.min(scale,(innerWidth-48)/pg.getViewport({scale:1}).width),vp=pg.getViewport({scale:sc}),d=devicePixelRatio||1,c=el('canvas'),w=el('div','pkw'),tl=el('div','textLayer');
-  c.width=vp.width*d;c.height=vp.height*d;c.style.cssText=`width:${vp.width}px;height:${vp.height}px`;
-  await pg.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[d,0,0,d,0,0],annotationMode:pdfjsLib.AnnotationMode.DISABLE}).promise;if(g!==pkG||doc!==pdf)return c.width=c.height=0;
-  w.style.cssText=`width:${vp.width}px;height:${vp.height}px;--scale-factor:${sc}`;w.append(c,tl);
-  try{await pdfjsLib.renderTextLayer({textContentSource:await pg.getTextContent(),container:tl,viewport:vp,textDivs:[]}).promise}catch(_){}  // the words can be selected and copied
+  c.width=vp.width*d;c.height=vp.height*d;c.style.cssText=`width:${vp.width}px;height:${vp.height}px`;w.style.cssText=`width:${vp.width}px;height:${vp.height}px;--scale-factor:${sc}`;
+  const P=V.querySelector(`.page[data-ok][data-n="${r.n}"]`),pc=P?.querySelector('canvas'),pt=P?.querySelector('.textLayer');
+  if(sc===scale&&pc&&pt&&pc.width===c.width){c.getContext('2d').drawImage(pc,0,0);const x=pt.cloneNode(true);x.classList.remove('selecting');x.querySelectorAll('mark.fnd').forEach(m=>m.replaceWith(m.textContent));x.querySelectorAll('.mq').forEach(e=>e.classList.remove('mq'));w.append(c,x)}  // the page is already drawn at this size: copy it, no second render
+  else{await pg.render({canvasContext:c.getContext('2d'),viewport:vp,transform:[d,0,0,d,0,0],annotationMode:annOff?pdfjsLib.AnnotationMode.DISABLE:pdfjsLib.AnnotationMode.ENABLE}).promise;if(g!==pkG||doc!==pdf)return c.width=c.height=0;
+    w.append(c,tl);try{await pdfjsLib.renderTextLayer({textContentSource:await pg.getTextContent(),container:tl,viewport:vp,textDivs:[]}).promise}catch(_){}}  // the words can be selected and copied
   if(g!==pkG||doc!==pdf)return;
   const [tx,ty]=vp.convertToViewportPoint(r.x??pg.view[0],r.y??0),y=r.y==null?0:Math.max(0,ty);r.y==null||w.append(Object.assign(el('i','pkm'),{style:`top:${y}px;left:${Math.max(0,tx-7)}px`}));  // a small tick beside the target line
   PK.replaceChildren(w);PK.style.width=vp.width+18+'px';PK.style.height=Math.min(mh,vp.height+16)+'px';PK.title='p. '+r.n;pkR=r;PK.hidden=false;PK.scrollTop=Math.max(0,y-16);
