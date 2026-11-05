@@ -245,7 +245,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <li><svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.2"/><path d="M10.5 3.5v-.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/></svg><b data-t="Copy / retry / remove note">Copy / retry / remove note</b><span><kbd>C</kbd><kbd>R</kbd><kbd data-k="del">⌫</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M6.4 6.4a1.6 1.6 0 1 1 2.2 1.5c-.4.2-.6.5-.6.9v.4M8 11h.01"/></svg><b data-t="Ask about a selection · switch model">Ask about a selection · switch model</b><span><kbd>A</kbd><kbd>Tab</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M2.5 8h11M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg><b data-t="Pages">Pages</b><span><kbd>←</kbd><kbd>→</kbd></span></li>
-<li><svg viewBox="0 0 16 16"><path d="M3 3v10M13 3v10M6 8h4"/></svg><b data-t="First / last page">First / last page</b><span><kbd>Home</kbd><kbd>End</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><path d="M3 3v10M13 3v10M6 8h4"/></svg><b data-t="First / last page">First / last page</b><span><kbd data-k="cmd">⌘</kbd><kbd>↑</kbd><kbd>↓</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M6 4 3 7l3 3"/><path d="M3 7h6.5a3.25 3.25 0 0 1 0 6.5H8"/></svg><b data-t="Back from a link">Back from a link</b><span><kbd>B</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M7 5v4M5 7h4"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Zoom">Zoom</b><span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Find">Find</b><span><kbd>F</kbd></span></li>
@@ -1078,7 +1078,9 @@ document.addEventListener('keydown',e=>{
   if(!$('mConn').hidden&&k!=='escape'&&k!==',')return;
   if(k==='escape'||c==='Escape'){PK.hidden||pkOff();if(selA?.pend){selA=null;selHide();hlAll()};$('mOv').hidden||ovClose();$('mK').hidden||kClose();document.body.classList.contains('ask')&&hintOff();$('mFind').hidden||fClose();selHide();document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open'));$('mConn').hidden||cfg(0);return}
   const mod=e.metaKey||e.ctrlKey;
-  if(mod){if(k==='s'||c==='KeyS'){e.preventDefault();nmd()}else if(k==='o'||c==='KeyO'){e.preventDefault();hintOff();A.open()}else if((k==='x'||c==='KeyX')&&e.shiftKey){e.preventDefault();clrAll()}return}
+  if(mod){if(k==='s'||c==='KeyS'){e.preventDefault();nmd()}else if(k==='o'||c==='KeyO'){e.preventDefault();hintOff();A.open()}else if((k==='x'||c==='KeyX')&&e.shiftKey){e.preventDefault();clrAll()}
+    else if(k==='arrowup'||c==='ArrowUp'){e.preventDefault();goto(1)}else if(k==='arrowdown'||c==='ArrowDown'){e.preventDefault();goto(pdf?.numPages||1)}  // ⌘↑/⌘↓: first/last page, the Mac way (no Home/End keys there)
+    return}
   if(k==='enter'||c==='Enter'){e.preventDefault();if(pkR){const r=pkR;pkOff();lkGo(r)}else hintOff()}
   else if(k==='?'||(c==='Slash'&&e.shiftKey))hintOn();
   else if(k==='f'||c==='KeyF'){e.preventDefault();fOpen()}
