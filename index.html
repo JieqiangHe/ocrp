@@ -236,6 +236,7 @@ body.mq,body.mq *{cursor:crosshair!important}  /* the marquee is armed: the poin
 <li><svg viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg><b data-t="Save notes">Save notes</b><span><kbd>N</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><rect x="2.5" y="4.5" width="8" height="9" rx="1"/><path d="M5.5 2.5h7a1 1 0 0 1 1 1v7"/></svg><b data-t="Documents">Documents</b><span><kbd>D</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M2.5 12.5h11"/><circle cx="4.5" cy="6" r="1.6"/><circle cx="9" cy="8" r="1.6"/><circle cx="12.5" cy="4.5" r="1.6"/><path d="M6 6.6l1.2.9M10.4 7.2l.9-.9"/></svg><b data-t="Notes map">Notes map</b><span><kbd>M</kbd></span></li>
+<li><svg viewBox="0 0 16 16"><path d="M4.5 6 8 2.5 11.5 6M4.5 10 8 13.5 11.5 10"/></svg><b data-t="Next / previous note">Next / previous note</b><span><kbd>J</kbd><kbd>K</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M2.5 8h11M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/></svg><b data-t="Pages">Pages</b><span><kbd>←</kbd><kbd>→</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><path d="M6 4 3 7l3 3"/><path d="M3 7h6.5a3.25 3.25 0 0 1 0 6.5H8"/></svg><b data-t="Back from a link">Back from a link</b><span><kbd>B</kbd></span></li>
 <li><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.2"/><path d="M7 5v4M5 7h4"/><path d="m10.2 10.2 3.3 3.3"/></svg><b data-t="Zoom">Zoom</b><span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd></span></li>
@@ -292,7 +293,7 @@ let UI=ls("mrdUI")==="zh"?"zh":"en";
 const ZH={
   "old, clean, read, paper":"old, clean, read, paper · 原始 简洁 阅读 文章",
   "Open a PDF":"打开 PDF","Save PDF":"保存 PDF","Save notes":"保存笔记",Documents:"文档","Notes map":"笔记地图",
-  Pages:"翻页","Back from a link":"链接后返回",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图",Language:"语言",Settings:"设置",
+  Pages:"翻页","Next / previous note":"下一条 / 上一条批注","Back from a link":"链接后返回",Zoom:"缩放",Find:"查找",Theme:"主题",Thumbnails:"缩略图",Language:"语言",Settings:"设置",
   Model:"模型",Think:"思考",Key:"密钥",URL:"URL",Translating:"翻译",Into:"译为",Low:"低",High:"高",Max:"最高",
   "Keys stay in this browser.":"密钥只留在这个浏览器里。",
   "Auto — translate as soon as text is selected":"自动 — 选中文字即刻翻译",
@@ -426,6 +427,9 @@ const sched=()=>nRaf||(nRaf=requestAnimationFrame(frame)),ro=new ResizeObserver(
 const OV=$('mOv'),OVL=$('mOvL'),OVH=$('mOvH');
 const ovClose=()=>{OV.hidden=true},
   ovOpen=()=>{if(!N.length)return;OV.hidden=false;ovRender()},
+  nStep=d=>{if(!N.length)return;const W=o=>want(o)??Infinity,L=[...N].sort((a,b)=>W(a)-W(b)),i=L.indexOf(nAct),y=SC.scrollTop+SC.clientHeight*.32;  // J/K: the notes in page order
+    const o=i<0?(d>0?L.find(o=>W(o)>=y-1)||L[0]:L.findLast(o=>W(o)<=y+1)||L.at(-1)):L[(i+d+L.length)%L.length];
+    act(o);const w=want(o),pg=o.rs?.[0]?.[0];w!=null?(SC.scrollTop=Math.max(0,w-SC.clientHeight*.32)):pg&&goto(pg)},
   ovJump=o=>{act(o);const w=want(o),pg=o.rs?.[0]?.[0];w!=null?(SC.scrollTop=Math.max(0,w-SC.clientHeight*.32)):pg&&goto(pg);ovClose()},
   ovRender=()=>{const srt=N.slice().sort((a,b)=>(a.rs?.[0]?.[0]??1e9)-(b.rs?.[0]?.[0]??1e9)||(a.rs?.[0]?.[2]??a.fy*1e3)-(b.rs?.[0]?.[2]??b.fy*1e3));
     OVH.textContent=N.length+' '+tr(N.length>1?'notes':'note');
@@ -1045,6 +1049,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='d'||c==='KeyD'){e.preventDefault();kOpen()}
   else if(k==='p'||c==='KeyP'){e.preventDefault();npdf()}
   else if(k==='n'||c==='KeyN'){e.preventDefault();nmd()}
+  else if(k==='j'||c==='KeyJ'){e.preventDefault();nStep(1)}else if(k==='k'||c==='KeyK'){e.preventDefault();nStep(-1)}
   else if(k==='m'||c==='KeyM'){e.preventDefault();OV.hidden?ovOpen():ovClose()}
   else if(k==='l'||c==='KeyL'){e.preventDefault();UI=UI==='zh'?'en':'zh';ls('mrdUI',UI);langApply()}
   else if(k==='['||c==='BracketLeft')tabGo((TI-1+TABS.length)%TABS.length);else if(k===']'||c==='BracketRight')tabGo((TI+1)%TABS.length);
